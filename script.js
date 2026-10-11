@@ -2,6 +2,8 @@
 // 1. КОНСТАНТЫ
 // ==========================================================================
 
+const APP_NAME = "food-diary";
+
 const NUTRIENT_KEYS = [
   "kcal",
   "protein",
@@ -66,7 +68,6 @@ const STEP_KCAL = 0.0005;
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 const NORM_RATIO_HIGH = 1.1;
-const SCHEMA_VERSION = 1;
 const PHOTO_MAX_WIDTH = 1280;
 const PHOTO_QUALITY = 0.82;
 
@@ -223,7 +224,10 @@ const clean = (s) =>
       .trim(),
   ]
     .slice(0, 100)
-    .join("");
+    .join(" ");
+
+const norm = (s) =>
+  s.trim().toLowerCase().replace("ё", "е").replace(/\s+/g, " ");
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
@@ -450,16 +454,17 @@ const ENDINGS = (
 
 const normalizeWord = (w) => {
   w = w.toLowerCase().replace(/ё/g, "е");
+
   if (/[а-я]/.test(w)) {
-    for (const e of ENDINGS) {
-      if (w.endsWith(e) && w.length - e.length >= 3)
+    for (const e of ENDINGS)
+      if (w.length - e.length >= 3 && w.endsWith(e))
         return w.slice(0, -e.length);
-    }
     return w;
   }
-  if (/(o|x|ch|sh|ss)es$/.test(w) && w.length - 2 >= 3) return w.slice(0, -2);
-  if (/[^aeiou]ies$/.test(w) && w.length - 3 >= 3) return w.slice(0, -3) + "y";
-  if (w.endsWith("s") && !w.endsWith("ss") && w.length - 1 >= 3)
+
+  if (/(o|x|ch|sh|ss)es$/.test(w) && w.length >= 5) return w.slice(0, -2);
+  if (/[^aeiou]ies$/.test(w) && w.length >= 6) return w.slice(0, -3) + "y";
+  if (w.endsWith("s") && !w.endsWith("ss") && w.length >= 4)
     return w.slice(0, -1);
   return w;
 };
@@ -469,72 +474,86 @@ const normalizePhrase = (s) =>
     .toLowerCase()
     .replace(/ё/g, "е")
     .replace(/[^a-zа-я0-9\s-]/g, " ")
+    .trim()
     .split(/[\s-]+/)
     .filter(Boolean)
     .map(normalizeWord)
     .join(" ");
 
 const levenshtein = (a, b) => {
-  if (a === b) return 0;
+  if (a.length < b.length) [a, b] = [b, a];
   let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+
   for (let i = 1; i <= a.length; i++) {
     const cur = [i];
-    for (let j = 1; j <= b.length; j++) {
+    for (let j = 1; j <= b.length; j++)
       cur[j] = Math.min(
         prev[j] + 1,
         cur[j - 1] + 1,
-        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+        prev[j - 1] + (a[i - 1] !== b[j - 1]),
       );
-    }
     prev = cur;
   }
   return prev[b.length];
 };
 
-const levenshteinLimit = (len) =>
-  len <= 3 ? 0 : len <= 6 ? 1 : Math.max(2, Math.round(len * 0.15));
+const similarity = (a, b) =>
+  a === b ? 1 : 1 - levenshtein(a, b) / Math.max(a.length, b.length, 1);
+
+const phraseSimilarity = (a, b) => {
+  if (a === b) return 1;
+
+  const aw = a.split(" ");
+  const bw = b.split(" ");
+  const pairs = [];
+
+  for (let i = 0; i < aw.length; i++)
+    for (let j = 0; j < bw.length; j++)
+      pairs.push([similarity(aw[i], bw[j]), i, j]);
+
+  pairs.sort((a, b) => b[0] - a[0]);
+
+  const usedA = new Set();
+  const usedB = new Set();
+  let total = 0;
+
+  for (const [s, i, j] of pairs) {
+    if (usedA.has(i) || usedB.has(j)) continue;
+    total += s;
+    usedA.add(i);
+    usedB.add(j);
+  }
+
+  const words = (2 * total) / (aw.length + bw.length);
+  return 0.9 * words + 0.1 * similarity(a, b);
+};
 
 const keysCache = new WeakMap();
 
 const foodKeys = (f) => {
   let keys = keysCache.get(f);
   if (!keys) {
-    keys = [f.ru, f.en, ...(f.aliases || [])].filter(Boolean).map((raw) => ({
-      raw,
-      lower: raw.toLowerCase().replace(/ё/g, "е"),
-      norm: normalizePhrase(raw),
-    }));
+    keys = [
+      ...new Set(
+        [f.ru, f.en, ...(f.aliases || [])]
+          .filter(Boolean)
+          .map(normalizePhrase)
+          .filter(Boolean),
+      ),
+    ];
     keysCache.set(f, keys);
   }
   return keys;
 };
 
-const prefixWords = (a, b) => a.every((w) => b.some((x) => x.startsWith(w)));
+const matchScore = (food, query) => {
+  query = normalizePhrase(query);
+  if (!query) return 0;
 
-const matchScore = (f, q) => {
-  let best = 0;
-  for (const k of foodKeys(f)) {
-    if (k.raw === q.raw) return 1;
-    if (k.lower === q.lower || (k.norm && k.norm === q.norm)) {
-      best = 0.9;
-      continue;
-    }
-    if (
-      best < 0.7 &&
-      q.limit > 0 &&
-      Math.abs(k.norm.length - q.norm.length) <= q.limit &&
-      levenshtein(k.norm, q.norm) <= q.limit
-    ) {
-      best = 0.7;
-      continue;
-    }
-    if (best < 0.5 && q.norm.length >= 3) {
-      const qw = q.norm.split(" ");
-      const kw = k.norm.split(" ");
-      if (prefixWords(qw, kw) || prefixWords(kw, qw)) best = 0.5;
-    }
-  }
-  return best;
+  let score = 0;
+  for (const key of foodKeys(food))
+    score = Math.max(score, phraseSimilarity(key, query));
+  return score;
 };
 
 const getFrequency = () => {
@@ -550,41 +569,30 @@ const getFrequency = () => {
   return frequency;
 };
 
-const makeQuery = (text) => {
-  const raw = text.trim();
-  const norm = normalizePhrase(raw);
-  return {
-    raw,
-    lower: raw.toLowerCase().replace(/ё/g, "е"),
-    norm,
-    limit: levenshteinLimit(norm.length),
-  };
-};
-
 const activeFoods = () => [...foods.filter((f) => !f.archived), ...REFS];
 
 // Сравнение кандидатов: уверенность, свой продукт, избранное, частота, короткое имя
 const compareMatches = (a, b) => {
-  const freq = getFrequency();
+  const f = getFrequency();
   return (
     b.confidence - a.confidence ||
     b.food.custom - a.food.custom ||
     favorites.includes(b.food.id) - favorites.includes(a.food.id) ||
-    (freq.get(b.food.id) || 0) - (freq.get(a.food.id) || 0) ||
+    (f.get(b.food.id) || 0) - (f.get(a.food.id) || 0) ||
     foodName(a.food).length - foodName(b.food).length
   );
 };
 
-const rankFoods = (text, pool = activeFoods()) => {
-  const q = makeQuery(text);
-  if (!q.norm) return [];
-  return pool
-    .map((food) => ({ food, confidence: matchScore(food, q) }))
+const rankFoods = (text, foods = activeFoods()) => {
+  const query = normalizePhrase(text);
+  if (!query) return [];
+  return foods
+    .map((food) => ({ food, confidence: matchScore(food, query) }))
     .filter((m) => m.confidence >= 0.5)
     .sort(compareMatches);
 };
 
-const matchFood = (text, pool) => rankFoods(text, pool)[0] || null;
+const matchFood = (text, foods) => rankFoods(text, foods)[0] || null;
 
 // ==========================================================================
 // 7. ПАРСЕР
@@ -605,7 +613,8 @@ const unitOf = (word) => {
     return "pc";
   if (/^(чл|tsp)$/.test(w)) return "tsp";
   if (/^(стл|tbsp)$/.test(w) || /^лож/.test(w)) return "tbsp";
-  if (/^(стакан|стакана|стаканов|стаканчик|cup|cups)$/.test(w)) return "cup";
+  if (/^(стакан|стакана|стаканов|стаканчик|кружка|чашка|cup|cups)$/.test(w))
+    return "cup";
   if (/^(порция|порции|порций|порцию|serving|servings)$/.test(w))
     return "serving";
   return null;
@@ -614,35 +623,35 @@ const unitOf = (word) => {
 // Единицы, которые можно указать без числа: «стакан молока»
 const COUNTABLE_UNITS = ["pc", "tsp", "tbsp", "cup", "serving"];
 
-const toGrams = (qty, unit, food) => {
-  const serving = food?.servingGrams || DEFAULT_SERVING;
+const toGrams = (count, unit, food) => {
+  const serving = food.servingGrams || DEFAULT_SERVING;
   const k =
     {
       g: 1,
       kg: 1000,
       ml: 1,
       l: 1000,
-      pc: food?.pieceGrams || serving,
+      pc: food.pieceGrams || serving,
       tsp: 5,
       tbsp: 15,
       cup: 200,
       serving,
     }[unit] || serving;
-  return Math.max(1, Math.round(qty * k));
+  return Math.max(1, Math.round(count * k));
 };
 
 const splitFragments = (text) =>
   text
     .split(/[;\n]|(?<!\d),|,(?!\d)/)
-    .map((s) => s.trim())
+    .map(norm)
     .filter(Boolean)
     .flatMap((part) => {
-      const name = cleanName(parseQuantity(part).name);
+      const name = clean(parseQuantity(part).name);
       const whole = name ? matchFood(name) : null;
       if (whole && whole.confidence >= 0.9) return [part];
       return part.split(/\s+(?:и|с|со|and|with)\s+|\s*\+\s*/i);
     })
-    .map((s) => s.trim())
+    .map(norm)
     .filter(Boolean);
 
 const parseQuantity = (fragment) => {
@@ -652,16 +661,18 @@ const parseQuantity = (fragment) => {
     .replace(/чайн\S*\s+лож\S*/gi, " чл ")
     .replace(/столов\S*\s+лож\S*/gi, " стл ");
 
-  const num = text.match(/(\d+(?:[.,]\d+)?)\s*([a-zа-яё]+\.?)?/i);
-  if (num) {
-    const qty = +num[1].replace(",", ".");
-    const unit = num[2] ? unitOf(num[2]) : null;
-    const consumed = unit ? num[0] : num[1];
+  const number = text.match(/(\d+(?:[.,]\d+)?)\s*([a-zа-я]+\.?)?/i);
+  if (number) {
+    const count = +number[1].replace(",", ".");
+    const unit = number[2] ? unitOf(number[2]) : null;
+    const consumed = unit ? number[0] : number[1];
     // Вырезаем число по позиции совпадения, а не первое вхождение в строке
     const name =
-      text.slice(0, num.index) + " " + text.slice(num.index + consumed.length);
-    if (unit) return { qty, unit, name };
-    return { qty, unit: qty <= 20 ? "pc" : "g", name };
+      text.slice(0, number.index) +
+      " " +
+      text.slice(number.index + consumed.length);
+    if (unit) return { count, unit, name };
+    return { count, unit: count <= 20 ? "pc" : "g", name };
   }
 
   const words = text.split(/\s+/);
@@ -669,25 +680,17 @@ const parseQuantity = (fragment) => {
   if (i >= 0) {
     const unit = unitOf(words[i]);
     words.splice(i, 1);
-    return { qty: 1, unit, name: words.join(" ") };
+    return { count: 1, unit, name: words.join(" ") };
   }
-  return { qty: null, unit: null, name: text };
+  return { count: 1, unit: "pc", name: text };
 };
-
-const cleanName = (s) =>
-  s
-    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const fragmentKey = (s) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
 const makeItem = (food, grams, source, confidence = 1) => ({
   foodId: food.id,
   name: foodName(food),
   grams,
   nutrition: { ...food.nutrition },
-  micro: food.micro ? { ...food.micro } : {},
+  micro: { ...food.micro },
   healthScore: food.healthScore,
   confidence,
   confirmed: false,
@@ -696,28 +699,28 @@ const makeItem = (food, grams, source, confidence = 1) => ({
 
 const parseMeal = (text) =>
   splitFragments(text).map((fragment) => {
-    const { qty, unit, name: rawName } = parseQuantity(fragment);
-    const name = cleanName(rawName);
-    const match = name ? matchFood(name) : null;
-    const grams = toGrams(qty ?? 1, qty == null ? null : unit, match?.food);
+    let { count, unit, name } = parseQuantity(fragment);
+    name = clean(name);
+    const match = name && matchFood(name);
+    const grams = match && toGrams(count, unit, match.food);
 
     if (match) {
       return {
         ...makeItem(match.food, grams, "parse", match.confidence),
-        fragment: fragmentKey(fragment),
+        fragment: norm(fragment),
       };
     }
     return {
       foodId: null,
-      name: capitalize(name || cleanName(fragment)),
+      name: capitalize(name || clean(fragment)),
       grams,
       nutrition: null,
       micro: null,
       healthScore: null,
-      confidence: 0.3,
+      confidence: 0,
       confirmed: false,
       source: "parse",
-      fragment: fragmentKey(fragment),
+      fragment: norm(fragment),
     };
   });
 
@@ -954,22 +957,19 @@ const setLanguage = () => {
   document.documentElement.lang = lang;
   S = translations[lang];
 
-  // Ключ может быть путем: «charts.kcal», «activityLevels.0»
-  const t = (key) => key.split(".").reduce((o, k) => o?.[k], S);
-
   document
     .querySelectorAll("[data-i18n]")
-    .forEach((el) => (el.textContent = t(el.dataset.i18n)));
+    .forEach((el) => (el.textContent = S[el.dataset.i18n]));
   document
     .querySelectorAll("[data-i18n-placeholder]")
-    .forEach((el) => (el.placeholder = t(el.dataset.i18nPlaceholder)));
+    .forEach((el) => (el.placeholder = S[el.dataset.i18nPlaceholder]));
   document
     .querySelectorAll("[data-i18n-title]")
-    .forEach((el) => (el.title = t(el.dataset.i18nTitle)));
+    .forEach((el) => (el.title = S[el.dataset.i18nTitle]));
   document
     .querySelectorAll("[data-i18n-aria-label]")
     .forEach((el) =>
-      el.setAttribute("aria-label", t(el.dataset.i18nAriaLabel)),
+      el.setAttribute("aria-label", S[el.dataset.i18nAriaLabel]),
     );
 
   whenCalendar.firstElementChild.innerHTML = S.wds
@@ -1042,16 +1042,6 @@ const savePerson = () => {
   write("person", personToStore());
 };
 
-const migrate = () => {
-  const version = read("schemaVersion", 0);
-  if (version > SCHEMA_VERSION) {
-    console.warn(`schemaVersion ${version} is newer than ${SCHEMA_VERSION}`);
-    return;
-  }
-  // Версия 0 -> 1: данных предыдущих версий не существует, преобразований нет
-  if (version < SCHEMA_VERSION) write("schemaVersion", SCHEMA_VERSION);
-};
-
 const loadPerson = () => {
   person = { ...DEFAULT_PERSON, ...read("person", {}) };
   updatePerson();
@@ -1062,13 +1052,15 @@ const loadMeals = () => {
 };
 
 const loadFoods = () => {
-  foods = read("foods", []).filter(Boolean).map((f) => {
-    if (f.ru == null && f.name != null) {
-      const { name, ...rest } = f;
-      return { ...rest, ru: name };
-    }
-    return f;
-  });
+  foods = read("foods", [])
+    .filter(Boolean)
+    .map((f) => {
+      if (f.ru == null && f.name != null) {
+        const { name, ...rest } = f;
+        return { ...rest, ru: name };
+      }
+      return f;
+    });
 };
 
 const loadJournals = () => {
@@ -1112,7 +1104,7 @@ const updateRecents = (items) => {
 
 const exportData = () => {
   const data = {
-    app: "food-diary",
+    app: APP_NAME,
     exported: Date.now(),
     meals,
     foods,
@@ -1128,7 +1120,7 @@ const exportData = () => {
   const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `food-diary-${getDate(new Date())}.json`;
+  a.download = `${APP_NAME}-${getDate(new Date())}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
@@ -1145,49 +1137,27 @@ const IMPORT_ARRAYS = [
   "recents",
 ];
 
-const isFiniteObject = (x) =>
-  x &&
-  typeof x === "object" &&
-  Object.values(x).every(
-    (v) => v == null || (typeof v === "number" && Number.isFinite(v)),
-  );
-
-const validItem = (item) =>
-  item &&
-  typeof item === "object" &&
-  typeof item.name === "string" &&
-  Number.isFinite(item.grams) &&
-  item.grams > 0 &&
-  (item.nutrition == null || isFiniteObject(item.nutrition)) &&
-  (item.micro == null || isFiniteObject(item.micro)) &&
-  (item.healthScore == null || Number.isFinite(item.healthScore));
-
-const validImport = (data) =>
-  data &&
-  typeof data === "object" &&
-  data.app === "food-diary" &&
-  Number.isInteger(data.schemaVersion) &&
-  data.schemaVersion <= SCHEMA_VERSION &&
-  typeof data.person === "object" &&
-  data.person != null &&
-  [data.person.height, data.person.weight, data.person.activity].every(
-    Number.isFinite,
-  ) &&
-  [data.person.sex, data.person.weightGoal, data.person.birthdate].every(
-    (v) =>
-      v == null ||
-      typeof v === "boolean" ||
-      typeof v === "string" ||
-      Number.isFinite(v),
-  ) &&
-  IMPORT_ARRAYS.every((k) => Array.isArray(data[k])) &&
-  data.meals.every(
-    (m) =>
-      Number.isFinite(m?.created) &&
-      Number.isFinite(m?.eaten) &&
-      Array.isArray(m?.items) &&
-      m.items.every(validItem),
-  );
+const validImport = (data) => {
+  try {
+    const { sex, height, weight, activity, weightGoal, birthdate } =
+      data.person;
+    return (
+      data.app === APP_NAME &&
+      [sex, height, weight, activity, weightGoal, birthdate].every(
+        Number.isFinite,
+      ) &&
+      IMPORT_ARRAYS.every((k) => Array.isArray(data[k])) &&
+      data.meals.every(
+        (m) =>
+          Number.isFinite(m.created) &&
+          Number.isFinite(m.eaten) &&
+          Array.isArray(m.items),
+      )
+    );
+  } catch {
+    return false;
+  }
+};
 
 const importData = (data) => {
   const payload = Object.fromEntries(IMPORT_ARRAYS.map((k) => [k, data[k]]));
@@ -2295,7 +2265,7 @@ const dotColor = (item) => {
 };
 
 const macrosText = (n, f) =>
-  `${S.P} ${fmt(n.protein * f)} · ${S.F} ${fmt(n.fat * f)} · ${S.C} ${fmt(n.carbs * f)}`;
+  `${S.protein[0]} ${fmt(n.protein * f)} · ${S.fat[0]} ${fmt(n.fat * f)} · ${S.carbs[0]} ${fmt(n.carbs * f)}`;
 
 const itemHtml = (item, i) => {
   const n = item.nutrition;
@@ -3287,7 +3257,9 @@ const renderDishTags = () => {
         `<button class="tap ${dish.tags.has(tag) ? "selected" : ""}">${clean(tag)}</button>`,
     )
     .join("");
-  [...dishTags.children].forEach((el, i) => (el.dataset.tag = dish.autoTags[i]));
+  [...dishTags.children].forEach(
+    (el, i) => (el.dataset.tag = dish.autoTags[i]),
+  );
 };
 
 bindTagChips(dishTags, () => dish.tags);
@@ -3381,7 +3353,6 @@ const renderPerson = () => {
         <span class="help">${person.age} ${S.y}</span> •
         <span class="help">${fmt(person.height)} ${S.cm}</span> •
         <span class="help">${fmt(person.weight, 1)} ${S.kg}</span>`;
-
 
   const g = person.goals;
   const row = (label, value) =>
@@ -3753,7 +3724,16 @@ const pastDays = (start, end) => {
   return days;
 };
 
-const DAY_SUM_KEYS = ["kcal", "protein", "fat", "carbs", "fiber", "sugar", "salt", "satFat"];
+const DAY_SUM_KEYS = [
+  "kcal",
+  "protein",
+  "fat",
+  "carbs",
+  "fiber",
+  "sugar",
+  "salt",
+  "satFat",
+];
 
 const daySummaryOf = (list) => {
   // Группируем позиции по типам приема за один проход, без повторных фильтраций
@@ -4830,14 +4810,14 @@ const renderStats = () => {
   if (microMode === "radar") {
     renderRadar(
       "micro-chart",
-      MICRO_KEYS.map((k) => S.microShort[k]),
+      MICRO_KEYS.map((k) => S[k]),
       MICRO_KEYS.map((k) => micro[k]),
     );
   } else if (!logged.length) {
     empty("micro-chart");
   } else {
     $("micro-chart").innerHTML =
-      `<div class="h-list">${microBarsHtml(MICRO_KEYS.map((k) => ({ label: S.micro[k], value: micro[k] })))}</div>`;
+      `<div class="h-list">${microBarsHtml(MICRO_KEYS.map((k) => ({ label: S[k], value: micro[k] })))}</div>`;
   }
 };
 
