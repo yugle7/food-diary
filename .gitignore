@@ -1,0 +1,17 @@
+raw
+log
+out
+src
+dst
+tmp
+dev
+doc
+feature_graphic
+screenshots
+.env
+.venv
+catboost_info
+trainer_output
+.idea
+.DS_Store
+__pycache__

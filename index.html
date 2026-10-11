@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no, interactive-widget=resizes-content"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <meta name="theme-color" content="#f7f6f4" media="(prefers-color-scheme: light)"/>
+    <meta name="theme-color" content="#2a2a2a" media="(prefers-color-scheme: dark)"/>
+    <meta name="msapplication-config" content="none">
+
+    <title data-i18n="appName">Food Diary</title>
+
+    <link rel="manifest" href="manifest.webmanifest"/>
+    <link rel="stylesheet" href="style.css"/>
+
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+
+<!-- ==========================================================================
+     ДНЕВНИК
+     ========================================================================== -->
+
+<section id="diary-page" class="width-500 safe">
+    <div id="calendar"></div>
+    <h3 id="chosen-day" class="accent center"></h3>
+    <button id="day-summary" data-i18n-aria-label="dayDetails"></button>
+    <div id="day-logs"></div>
+    <div id="day-meals"></div>
+</section>
+
+<!-- ==========================================================================
+     ПРИЕМ ПИЩИ
+     ========================================================================== -->
+
+<section id="meal-page" class="hidden">
+    <div class="scroll">
+        <div class="width-500 col gap-20 pad-20 cta-space">
+            <header class="row gap-10">
+                <button id="meal-date" class="tap" aria-haspopup="dialog" data-i18n-aria-label="selectDate"></button>
+                <button id="meal-time" class="tap" aria-haspopup="dialog" data-i18n-aria-label="selectTime"></button>
+                <button id="meal-type" class="tap" data-i18n-aria-label="mealTypeLabel"></button>
+            </header>
+
+            <div class="input-row">
+                <div class="text-field">
+                    <input id="meal-text" class="input" maxlength="200" autocomplete="off" enterkeyhint="done"
+                           data-i18n-placeholder="parsePlaceholder" data-i18n-aria-label="parsePlaceholder">
+                    <button id="clear-text" class="clear hidden" data-i18n-aria-label="clear">
+                        <svg class="tool"><use href="sprite.svg#close"></use></svg>
+                    </button>
+                </div>
+                <button id="icon-photo" class="icon-button needs-photos" data-i18n-aria-label="photo">
+                    <svg class="tool"><use href="sprite.svg#camera"></use></svg>
+                </button>
+                <button id="icon-voice" class="icon-button" data-i18n-aria-label="voice">
+                    <svg class="tool"><use href="sprite.svg#mic"></use></svg>
+                </button>
+                <button id="icon-search" class="icon-button" data-i18n-aria-label="search">
+                    <svg class="tool"><use href="sprite.svg#search"></use></svg>
+                </button>
+                <button id="icon-star" class="icon-button" data-i18n-aria-label="favorites">
+                    <svg class="tool"><use href="sprite.svg#star"></use></svg>
+                </button>
+                <input id="photo-input" type="file" accept="image/*" capture="environment" hidden>
+            </div>
+            <div id="meal-photo" class="photo hidden"></div>
+
+            <div id="quick-picks" class="col gap-10"></div>
+            <div id="meal-items" class="col gap-10"></div>
+
+            <section id="meal-tags">
+                <div class="row add">
+                    <h3 data-i18n="tags"></h3>
+                    <button id="edit-tags" class="right help small" data-i18n="change"></button>
+                </div>
+                <div id="tag-buttons" class="chips"></div>
+            </section>
+
+            <details id="note-block">
+                <summary data-i18n="note"></summary>
+                <textarea id="meal-note" class="input" maxlength="280" rows="3"
+                          data-i18n-placeholder="notePlaceholder"></textarea>
+            </details>
+
+            <button id="meal-delete" class="red hidden" data-i18n="delete"></button>
+        </div>
+    </div>
+
+    <button id="confirm" class="fab-round" disabled aria-label="">
+        <svg><use href="sprite.svg#save"></use></svg>
+    </button>
+    <button id="cancel" class="fab-close" data-i18n-aria-label="close">
+        <svg><use href="sprite.svg#cancel"></use></svg>
+    </button>
+</section>
+
+<!-- ==========================================================================
+     ПРОДУКТ / БЛЮДО / РЕЦЕПТ
+     ========================================================================== -->
+
+<section id="dish-page" class="hidden">
+    <div class="scroll">
+        <div class="width-500 col gap-20 pad-20 cta-space">
+            <div class="segment" id="dish-kind" style="--n:3;--i:0">
+                <button data-kind="product" class="active" data-i18n="kindProduct"></button>
+                <button data-kind="dish" data-i18n="kindDish"></button>
+                <button data-kind="recipe" data-i18n="kindRecipe"></button>
+            </div>
+
+            <input id="dish-name" class="input" maxlength="80" autocomplete="off"
+                   data-i18n-placeholder="dishName" data-i18n-aria-label="dishName">
+
+            <div class="segment" id="dish-basis" style="--n:2;--i:0">
+                <button data-basis="100" class="active" data-i18n="per100g"></button>
+                <button data-basis="serving" data-i18n="perServing"></button>
+            </div>
+
+            <div class="row gap-10">
+                <label class="field">
+                    <span class="label" data-i18n="servingGrams"></span>
+                    <input id="dish-serving-grams" class="input mono" inputmode="numeric" placeholder="100">
+                </label>
+                <label class="field" id="dish-yield-field">
+                    <span class="label" data-i18n="yieldGrams"></span>
+                    <input id="dish-yield" class="input mono" inputmode="numeric">
+                </label>
+            </div>
+
+            <div class="grid-4">
+                <label class="field"><span class="label" data-i18n="kcal"></span><input id="dish-kcal" class="input mono" inputmode="decimal"></label>
+                <label class="field"><span class="label" data-i18n="protein"></span><input id="dish-protein" class="input mono" inputmode="decimal"></label>
+                <label class="field"><span class="label" data-i18n="fat"></span><input id="dish-fat" class="input mono" inputmode="decimal"></label>
+                <label class="field"><span class="label" data-i18n="carbs"></span><input id="dish-carbs" class="input mono" inputmode="decimal"></label>
+            </div>
+
+            <button id="toggle-micro" class="left accent small"></button>
+            <div id="dish-micro" class="col gap-10 hidden">
+                <div class="grid-4">
+                    <label class="field"><span class="label" data-i18n="fiber"></span><input id="dish-fiber" class="input mono" inputmode="decimal"></label>
+                    <label class="field"><span class="label" data-i18n="sugar"></span><input id="dish-sugar" class="input mono" inputmode="decimal"></label>
+                    <label class="field"><span class="label" data-i18n="salt"></span><input id="dish-salt" class="input mono" inputmode="decimal"></label>
+                    <label class="field"><span class="label" data-i18n="satFat"></span><input id="dish-satfat" class="input mono" inputmode="decimal"></label>
+                </div>
+                <div id="dish-micro-source" class="small help"></div>
+                <div class="small help" data-i18n="microPerServing"></div>
+                <div id="dish-micro-bars"></div>
+            </div>
+
+            <div id="ingredients-block" class="col gap-10">
+                <div class="row">
+                    <h3 data-i18n="ingredients"></h3>
+                    <button id="add-ingredient" class="right small accent" data-i18n="add"></button>
+                </div>
+                <div id="ingredients-list" class="col gap-10"></div>
+                <div class="small help mono" id="ingredients-total"></div>
+            </div>
+
+            <div id="dish-tags" class="chips"></div>
+
+            <div class="row gap-10 needs-photos">
+                <button id="dish-photo-button" class="tap" data-i18n="photo"></button>
+                <div id="dish-photo" class="photo hidden"></div>
+                <input id="dish-photo-input" type="file" accept="image/*" hidden>
+            </div>
+
+            <button id="dish-archive" class="red hidden" data-i18n="delete"></button>
+        </div>
+    </div>
+
+    <button id="dish-save" class="fab-primary" data-i18n="save" disabled></button>
+    <button id="dish-cancel" class="fab-close" data-i18n-aria-label="cancel">
+        <svg><use href="sprite.svg#cancel"></use></svg>
+    </button>
+</section>
+
+<!-- ==========================================================================
+     СТАТИСТИКА
+     ========================================================================== -->
+
+<section id="stats-page" class="width-500 pad-20 safe hidden">
+    <div id="period">
+        <div></div>
+        <button data-i="0" data-i18n="day"></button>
+        <button class="active" data-i="1" data-i18n="week"></button>
+        <button data-i="2" data-i18n="month"></button>
+    </div>
+
+    <div id="range">
+        <button type="button" data-add="-1" data-i18n-aria-label="previousPeriod">
+            <svg><use href="sprite.svg#prev"></use></svg>
+        </button>
+        <span id="range-label"></span>
+        <button type="button" data-add="1" data-i18n-aria-label="nextPeriod">
+            <svg><use href="sprite.svg#next"></use></svg>
+        </button>
+    </div>
+
+    <h2 class="group" data-i18n="groups.overview"></h2>
+
+    <div class="card">
+        <h3><span data-i18n="charts.kcal"></span> <span class="value help"></span></h3>
+        <div class="chart" id="kcal-chart"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="charts.macros"></h3>
+        <div class="chart" id="macros-chart"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="charts.balance"></h3>
+        <div class="chart" id="balance-chart"></div>
+    </div>
+
+    <h2 class="group" data-i18n="groups.distribution"></h2>
+
+    <div class="card">
+        <h3 data-i18n="charts.mealType"></h3>
+        <div class="chart" id="mealtype-chart"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="charts.water"></h3>
+        <div class="chart" id="water-chart"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="charts.tagsKcal"></h3>
+        <div class="chart" id="tags-kcal-chart"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="charts.weekday"></h3>
+        <div id="weekday-chart" class="col gap-10">
+            <div class="small help" data-i18n="mealsCount"></div>
+            <div class="chart" id="weekday-count"></div>
+            <div class="small help" data-i18n="avgKcal"></div>
+            <div class="chart" id="weekday-kcal"></div>
+        </div>
+    </div>
+
+    <h2 class="group" data-i18n="groups.quality"></h2>
+
+    <div class="card">
+        <h3><span data-i18n="charts.health"></span> <span class="value help"></span></h3>
+        <div class="chart" id="health-chart"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="charts.streak"></h3>
+        <div class="chart" id="streak-chart"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="charts.nutrients"></h3>
+        <div class="segment small-segment" id="nutrient-mode" style="--n:2;--i:0">
+            <button data-mode="sum" class="active" data-i18n="sumMode"></button>
+            <button data-mode="pct" data-i18n="percentMode"></button>
+        </div>
+        <div id="nutrient-chart" class="col gap-10">
+            <div class="small help" data-i18n="fiber"></div>
+            <div class="chart" id="nutrient-fiber"></div>
+            <div class="small help" data-i18n="sugar"></div>
+            <div class="chart" id="nutrient-sugar"></div>
+            <div class="small help" data-i18n="salt"></div>
+            <div class="chart" id="nutrient-salt"></div>
+            <div class="small help" data-i18n="satFat"></div>
+            <div class="chart" id="nutrient-satFat"></div>
+        </div>
+    </div>
+
+    <h2 class="group" data-i18n="groups.links"></h2>
+
+    <div class="card">
+        <h3><span data-i18n="charts.weight"></span> <span class="value help"></span></h3>
+        <div class="chart" id="weight-chart"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="charts.weightVsKcal"></h3>
+        <div class="segment small-segment" id="lag" style="--n:3;--i:0">
+            <button data-lag="0" class="active" data-i18n="lag0"></button>
+            <button data-lag="1" data-i18n="lag1"></button>
+            <button data-lag="2" data-i18n="lag2"></button>
+        </div>
+        <div class="chart" id="weight-kcal-scatter"></div>
+    </div>
+
+    <div class="card">
+        <h3 data-i18n="charts.triggers"></h3>
+        <div class="row gap-10">
+            <div class="segment small-segment" id="trigger-x" style="--n:2;--i:0">
+                <button data-x="sleep" class="active" data-i18n="xSleep"></button>
+                <button data-x="steps" data-i18n="xSteps"></button>
+            </div>
+            <div class="segment small-segment" id="trigger-y" style="--n:2;--i:0">
+                <button data-y="kcal" class="active" data-i18n="yKcal"></button>
+                <button data-y="sugar" data-i18n="ySugar"></button>
+            </div>
+        </div>
+        <div class="chart" id="trigger-scatter"></div>
+    </div>
+
+    <h2 class="group" data-i18n="groups.rhythm"></h2>
+
+    <div class="card">
+        <h3 data-i18n="charts.heatmap"></h3>
+        <div class="chart" id="hour-heatmap"></div>
+    </div>
+
+    <h2 class="group" data-i18n="groups.micro"></h2>
+
+    <div class="card">
+        <h3 data-i18n="charts.micro"></h3>
+        <div class="segment small-segment" id="micro-mode" style="--n:2;--i:0">
+            <button data-mode="radar" class="active" data-i18n="radarMode"></button>
+            <button data-mode="bars" data-i18n="barsMode"></button>
+        </div>
+        <div class="chart" id="micro-chart"></div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     ПРОФИЛЬ
+     ========================================================================== -->
+
+<section id="person-page" class="width-500 safe hidden">
+    <br/>
+
+    <button id="person" data-i18n-aria-label="person">
+        <svg class="icon"><use href="sprite.svg#person"></use></svg>
+        <span class="row gap-10"></span>
+    </button>
+
+    <div class="pad-20">
+        <h3 data-i18n="goals"></h3>
+        <div id="goals" class="col gap-8 small"></div>
+    </div>
+</section>
+
+<section id="settings-page" class="width-500 safe hidden">
+    <br/>
+    <div class="pad-20">
+        <h3 data-i18n="settings">Настройки</h3>
+    </div>
+
+    <a href="https://pay.cloudtips.ru/p/9e3a23d6" target="_blank" rel="noopener">
+        <svg class="icon"><use href="sprite.svg#heart"></use></svg>
+        <span data-i18n="support"></span>
+    </a>
+
+    <a href="mailto:yuzhakov.gleb@gmail.com?subject=FoodDiary">
+        <svg class="icon"><use href="sprite.svg#chat"></use></svg>
+        <span data-i18n="mailTo"></span>
+    </a>
+
+    <a href="privacy.html" target="_blank">
+        <svg class="icon"><use href="sprite.svg#shield"></use></svg>
+        <span data-i18n="privacy"></span>
+    </a>
+
+    <br/>
+
+    <button id="export">
+        <svg class="icon"><use href="sprite.svg#download"></use></svg>
+        <span data-i18n="exportData"></span>
+    </button>
+
+    <button id="import">
+        <svg class="icon"><use href="sprite.svg#upload"></use></svg>
+        <span data-i18n="importData"></span>
+    </button>
+    <input id="import-input" type="file" accept="application/json,.json" hidden>
+
+    <button id="reset">
+        <svg class="icon"><use href="sprite.svg#reset"></use></svg>
+        <span data-i18n="reset"></span>
+    </button>
+</section>
+
+<!-- ==========================================================================
+     ШТОРКИ
+     ========================================================================== -->
+
+<div id="overlay"></div>
+
+<div id="search-sheet" class="sheet tall" role="dialog" aria-modal="true" data-i18n-aria-label="search">
+    <div class="text-field">
+        <input id="search-input" class="input" type="text" autocomplete="off" enterkeyhint="search"
+               data-i18n-placeholder="searchPlaceholder" data-i18n-aria-label="search">
+        <button id="search-clear" class="clear" data-i18n-aria-label="clear">
+            <svg class="tool"><use href="sprite.svg#close"></use></svg>
+        </button>
+    </div>
+    <div id="search-tabs" class="chips scroll-x"></div>
+    <div id="search-results" class="sheet-scroll"></div>
+    <footer>
+        <button id="search-create" class="accent left"></button>
+        <button id="search-cancel" class="right" data-i18n="cancel"></button>
+    </footer>
+</div>
+
+<div id="portion-sheet" class="sheet" role="dialog" aria-modal="true" data-i18n-aria-label="portion">
+    <h3 id="portion-title" class="center"></h3>
+    <div id="portion-note" class="small red center"></div>
+    <div class="big-field">
+        <input id="portion-grams" class="mono" inputmode="numeric" autocomplete="off" data-i18n-aria-label="grams">
+        <span data-i18n="g"></span>
+    </div>
+    <div id="portion-quick" class="chips center"></div>
+    <div id="portion-info" class="col gap-8"></div>
+    <div class="chips center">
+        <button id="portion-replace" class="tap" data-i18n="replaceProduct"></button>
+        <button id="portion-create" class="tap" data-i18n="createProduct"></button>
+        <button id="portion-delete" class="tap red" data-i18n="delete"></button>
+    </div>
+    <button id="portion-confirm-item" class="tap wide" data-i18n="confirmItem"></button>
+    <footer>
+        <button id="portion-confirm" class="accent right" data-i18n="save"></button>
+    </footer>
+</div>
+
+<div id="tags-sheet" class="sheet" role="dialog" aria-modal="true" data-i18n-aria-label="tags">
+    <div class="row">
+        <input id="tag" type="text" class="input" maxlength="24" autocomplete="off"
+               data-i18n-placeholder="newTag" data-i18n-aria-label="newTag">
+        <button id="create-tag" class="small accent pad-10" data-i18n="add"></button>
+    </div>
+
+    <div data-i18n="tagActions" class="small help pad-10"></div>
+    <div id="tag-actions" class="chips"></div>
+
+    <footer>
+        <button id="close-tags" class="right" data-i18n="cancel"></button>
+        <button id="apply-tags" class="accent">OK</button>
+    </footer>
+</div>
+
+<div id="when-picker" class="sheet" role="dialog" aria-modal="true" data-i18n-aria-label="selectTime">
+    <header id="watch">
+        <button id="day" class="tap"></button>
+        <button id="hour" class="tap"></button>
+
+        <svg id="colon" viewBox="0 0 6 24" width="6" height="24" aria-hidden="true">
+            <circle cx="3" cy="8" r="1" stroke="var(--text)" fill="none"/>
+            <circle cx="3" cy="16" r="1" stroke="var(--text)" fill="none"/>
+        </svg>
+
+        <button id="minute" class="tap"></button>
+    </header>
+
+    <div id="clock">
+        <div id="white"></div>
+        <div id="black"></div>
+        <div id="center"></div>
+        <div id="line"></div>
+        <div id="hand"></div>
+    </div>
+
+    <div id="when-calendar">
+        <div class="days"></div>
+        <div class="days" id="when-days"></div>
+    </div>
+
+    <footer>
+        <button id="when-prev" data-i18n-aria-label="previous">
+            <svg><use href="sprite.svg#prev"></use></svg>
+        </button>
+
+        <button id="when-next" data-i18n-aria-label="next">
+            <svg><use href="sprite.svg#next"></use></svg>
+        </button>
+
+        <button id="close-when" class="right" data-i18n="cancel"></button>
+        <button id="apply-when" class="accent">OK</button>
+    </footer>
+</div>
+
+<div id="person-picker" class="sheet" role="dialog" aria-modal="true" data-i18n-aria-label="person">
+    <form id="profile" novalidate autocomplete="off" onsubmit="return false">
+        <div class="row gap-15">
+            <div class="field grow">
+                <label class="label" for="birthdate" data-i18n="birthdate"></label>
+                <input class="input mono" id="birthdate" name="birthdate" type="text" inputmode="numeric"
+                       autocomplete="off" autocapitalize="off" placeholder="31.12.2000" spellcheck="false" maxlength="10">
+            </div>
+            <div class="field grow">
+                <label class="label" data-i18n="sex"></label>
+                <div class="segment" id="sex" style="--n:2;--i:0">
+                    <button type="button" data-sex="female" class="active" data-i18n="female"></button>
+                    <button type="button" data-sex="male" data-i18n="male"></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row gap-15">
+            <div class="field grow">
+                <label class="label" for="height" data-i18n="height"></label>
+                <div class="unit-field">
+                    <input class="input mono" id="height" type="text" inputmode="numeric" placeholder="175" maxlength="3">
+                    <span class="unit" data-i18n="cm"></span>
+                </div>
+            </div>
+            <div class="field grow">
+                <label class="label" for="weight" data-i18n="weight"></label>
+                <div class="unit-field">
+                    <input class="input mono" id="weight" type="text" inputmode="decimal" placeholder="70" maxlength="5">
+                    <span class="unit" data-i18n="kg"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" data-i18n="activity"></label>
+            <div class="segment" id="activity" style="--n:5;--i:1">
+                <button type="button" data-activity="1.2" data-i18n="activityLevels.0"></button>
+                <button type="button" data-activity="1.375" class="active" data-i18n="activityLevels.1"></button>
+                <button type="button" data-activity="1.55" data-i18n="activityLevels.2"></button>
+                <button type="button" data-activity="1.725" data-i18n="activityLevels.3"></button>
+                <button type="button" data-activity="1.9" data-i18n="activityLevels.4"></button>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" data-i18n="goal"></label>
+            <div class="segment" id="goal" style="--n:3;--i:1">
+                <button type="button" data-goal="lose" data-i18n="lose"></button>
+                <button type="button" data-goal="maintain" class="active" data-i18n="maintain"></button>
+                <button type="button" data-goal="gain" data-i18n="gain"></button>
+            </div>
+        </div>
+    </form>
+
+    <footer>
+        <button id="close-person" class="right" data-i18n="cancel"></button>
+        <button id="apply-person" class="accent">OK</button>
+    </footer>
+</div>
+
+<div id="stats-sheet" class="sheet tall" role="dialog" aria-modal="true" data-i18n-aria-label="dayDetails">
+    <h3 id="stats-sheet-title" class="center"></h3>
+    <div class="sheet-scroll col gap-20">
+        <div id="day-rings"></div>
+        <div>
+            <h3 data-i18n="micronutrients"></h3>
+            <div id="day-micro" class="h-list"></div>
+        </div>
+        <div>
+            <h3 data-i18n="mealsTitle"></h3>
+            <div id="day-meal-shares" class="col gap-8"></div>
+        </div>
+    </div>
+</div>
+
+<div id="log-sheet" class="sheet" role="dialog" aria-modal="true">
+    <h3 id="log-title" class="center"></h3>
+    <div class="big-field">
+        <input id="log-value" class="mono" inputmode="decimal" autocomplete="off" data-i18n-aria-label="value">
+        <span id="log-unit"></span>
+    </div>
+    <div id="log-quick" class="chips center"></div>
+    <footer>
+        <button id="close-log" class="right" data-i18n="cancel"></button>
+        <button id="apply-log" class="accent">OK</button>
+    </footer>
+</div>
+
+<div class="hidden">
+    <div id="calendars"></div>
+</div>
+
+<nav id="nav-bar" data-i18n-aria-label="mainNavigation">
+    <div id="nav">
+        <button id="nav-diary" data-page="diary" class="pad-10 active" data-i18n-aria-label="diary" aria-current="page">
+            <svg><use href="sprite.svg#diary"></use></svg>
+        </button>
+
+        <button id="add-meal" data-page="meal" class="pad-10" data-i18n-aria-label="addMeal">
+            <svg><use href="sprite.svg#plus"></use></svg>
+        </button>
+
+        <button id="nav-stats" data-page="stats" class="pad-10" data-i18n-aria-label="stats">
+            <svg><use href="sprite.svg#stats"></use></svg>
+        </button>
+
+        <button id="nav-person" data-page="person" class="pad-10" data-i18n-aria-label="person">
+            <svg><use href="sprite.svg#person"></use></svg>
+        </button>
+
+        <button id="nav-settings" data-page="settings" class="pad-10" data-i18n-aria-label="settings">
+            <svg><use href="sprite.svg#settings"></use></svg>
+        </button>
+    </div>
+</nav>
+
+<div id="modal" hidden>
+    <div class="dialog" role="dialog" aria-modal="true">
+        <p id="question"></p>
+        <div class="actions">
+            <button id="modal-yes"></button>
+            <button id="modal-no" data-i18n="no"></button>
+        </div>
+    </div>
+</div>
+
+<div id="chart-tip" role="tooltip" hidden></div>
+
+<script>window.PHOTO_API_URL = '';</script>
+<script src="foods.js"></script>
+<script src="data.js"></script>
+<script src="script.js"></script>
+
+<script>
+    if (navigator.serviceWorker) {
+        // Перезагрузка только при обновлении, а не при первой установке
+        const hadController = !!navigator.serviceWorker.controller;
+        navigator.serviceWorker
+            .register("sw.js", {
+                scope: "./",
+                updateViaCache: "none"
+            })
+            .then((reg) => {
+                reg.update();
+                if (reg.waiting) {
+                    reg.waiting.postMessage("skipWaiting");
+                }
+                navigator.serviceWorker.addEventListener(
+                    "controllerchange",
+                    () => hadController && window.location.reload()
+                );
+            });
+    }
+</script>
+
+</body>
+</html>

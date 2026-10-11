@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <meta name="description" content="Privacy Policy for Food Diary" />
+
+    <meta name="theme-color" content="#eae8e5"/>
+
+    <title>Privacy Policy — Food Diary</title>
+
+    <style>
+        :root {
+            --bg: #f7f6f4;
+            --text: #4d5156;
+            --head: white;
+            --line: #e7e7e7;
+            --fade: #fafafa;
+
+            --green: #4aaf8c;
+            --blue: #7a82da;
+            --red: #c97b72;
+            --yellow: #c9a84c;
+
+            --accent: var(--green);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #2a2a2a;
+                --text: #c8c8c8;
+                --head: #333333;
+                --line: #444444;
+                --fade: #363636;
+
+                --accent: var(--yellow);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            font-weight: normal;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        main {
+            width: min(720px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 40px 0;
+        }
+
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+            line-height: 1.2;
+        }
+
+        h2 {
+            margin: 28px 0 10px;
+            font-size: 22px;
+            line-height: 1.3;
+        }
+
+        p {
+            margin: 10px 0;
+        }
+
+        ul {
+            margin: 10px 0;
+            padding-left: 24px;
+        }
+
+        .updated {
+            opacity: .7;
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        a {
+            color: var(--accent);
+        }
+
+        article {
+            padding: 20px;
+        }
+
+        @media (max-width: 600px) {
+            main {
+                width: min(100% - 20px, 720px);
+                padding: 40px 0;
+            }
+
+
+            h1 {
+                font-size: 26px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            body {
+                padding-top: 24px;
+            }
+        }
+
+        nav {
+            position: fixed;
+            right: 10px;
+            top: 0;
+        }
+
+        button {
+            font: inherit;
+        }
+
+        button {
+            border: 0;
+            background: none;
+            color: inherit;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            padding: 10px;
+        }
+
+        #back {
+            position: fixed;
+            top: 8px;
+            left: 10px;
+            z-index: 9999;
+
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: var(--accent);
+            opacity: 0.6;
+            color: var(--bg);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+            text-decoration: none;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        button:active {
+            transform: scale(0.92);
+        }
+
+        .selected {
+            color: var(--accent);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<main>
+    <button id="back" onclick="goBack()" aria-label="Back">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none"
+             stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+    </button>
+    <nav>
+        <button class="selected" data-id="eng">Eng</button>
+        <button data-id="rus">Рус</button>
+    </nav>
+
+    <article id="eng">
+        <h1>Privacy Policy</h1>
+        <div class="updated">Food Diary · 2026-10-09</div>
+        <p>This Privacy Policy explains how the Food Diary application handles user data.</p>
+        <h2>1. Information Stored on Your Device</h2>
+        <p>Food Diary does not require registration or a user account.</p>
+        <p>Everything you enter is stored locally on your device in the browser storage: meals and their time, foods and portions, calories and nutrients, your own products and recipes, tags and notes, water, sleep, steps and weight, and your profile (sex, birth date, height, weight, activity, goal).</p>
+        <p>Meal photos are stored locally in the browser database (IndexedDB) on your device.</p>
+        <p>The application works completely offline. The developer has no access to the data stored in the application.</p>
+        <h2>2. Photos and Optional Cloud Storage</h2>
+        <p>If the application is configured with a photo service, photos you attach are additionally uploaded to Yandex Object Storage so they can be restored on this device. Only the image file is uploaded, under a numeric identifier; your diary records are not sent.</p>
+        <p>Deleting a meal or a product with a photo also deletes the photo from the device and from the storage.</p>
+        <p>If the photo service is not configured, photos never leave your device.</p>
+        <h2>3. Data Collection and Analytics</h2>
+        <p>Food Diary does not collect personal data and does not use analytics, advertising trackers or profiling.</p>
+        <p>Voice input uses the speech recognition built into your browser. Depending on the browser, recognition may be performed by the browser vendor's service under its own privacy policy.</p>
+        <h2>4. Health-Related Information</h2>
+        <p>Your records may contain information about your nutrition and health. The application is not a medical device; calorie and nutrient goals are estimates and do not replace advice from a doctor or dietitian.</p>
+        <h2>5. Export, Import and Deletion</h2>
+        <p>You can export your data to a JSON file, import it back or delete all data in the Profile section. Exported files do not contain photos. Removing the application or clearing browser data deletes all locally stored information.</p>
+        <h2>6. Contact</h2>
+        <p>If you have questions about this policy, use the "Contact us" link in the application.</p>
+    </article>
+
+    <article id="rus" class="hidden">
+        <h1>Политика конфиденциальности</h1>
+        <div class="updated">Дневник питания · 2026-10-09</div>
+        <p>Эта политика описывает, как приложение «Дневник питания» обращается с данными пользователя.</p>
+        <h2>1. Данные на вашем устройстве</h2>
+        <p>Приложение не требует регистрации и учетной записи.</p>
+        <p>Все, что вы вводите, хранится локально на вашем устройстве в хранилище браузера: приемы пищи и их время, продукты и порции, калории и нутриенты, ваши продукты и рецепты, теги и заметки, вода, сон, шаги и вес, а также профиль (пол, дата рождения, рост, вес, активность, цель).</p>
+        <p>Фотографии приемов пищи хранятся локально в базе данных браузера (IndexedDB) на устройстве.</p>
+        <p>Приложение работает полностью офлайн. У разработчика нет доступа к данным в приложении.</p>
+        <h2>2. Фото и необязательное облачное хранилище</h2>
+        <p>Если в приложении настроен сервис фото, прикрепленные фотографии дополнительно загружаются в Yandex Object Storage, чтобы их можно было восстановить на этом устройстве. Загружается только файл изображения под числовым идентификатором; записи дневника не передаются.</p>
+        <p>При удалении приема пищи или продукта с фото фото удаляется и с устройства, и из хранилища.</p>
+        <p>Если сервис фото не настроен, фотографии не покидают устройство.</p>
+        <h2>3. Сбор данных и аналитика</h2>
+        <p>Приложение не собирает персональные данные и не использует аналитику, рекламные трекеры и профилирование.</p>
+        <p>Голосовой ввод использует распознавание речи, встроенное в браузер. В зависимости от браузера распознавание может выполняться сервисом производителя браузера по его собственной политике.</p>
+        <h2>4. Сведения о здоровье</h2>
+        <p>Записи могут содержать сведения о вашем питании и здоровье. Приложение не является медицинским изделием; нормы калорий и нутриентов — это оценки, они не заменяют консультацию врача или диетолога.</p>
+        <h2>5. Экспорт, импорт и удаление</h2>
+        <p>В разделе «Профиль» можно экспортировать данные в JSON-файл, импортировать их обратно или удалить все данные. Файл экспорта не содержит фотографий. Удаление приложения или очистка данных браузера удаляет всю локальную информацию.</p>
+        <h2>6. Контакты</h2>
+        <p>Если у вас есть вопросы о политике, воспользуйтесь ссылкой «Написать нам» в приложении.</p>
+    </article>
+</main>
+
+<script>
+    function goBack() {
+        if (window.opener || window.history.length <= 1) {
+            window.close();
+            setTimeout(() => {
+                window.location.href = './';
+            }, 100);
+        } else {
+            history.back();
+        }
+    }
+
+    const nav = document.querySelector('nav');
+    let language = nav.firstElementChild;
+
+    const select = button => {
+        language.classList.remove('selected');
+        document.getElementById(language.dataset.id).classList.add('hidden');
+        language = button;
+        document.getElementById(language.dataset.id).classList.remove('hidden');
+        language.classList.add('selected');
+    };
+
+    nav.onclick = (e) => {
+        const button = e.target.closest('button');
+        if (button && button !== language) select(button);
+    };
+
+    if (navigator.language?.toLowerCase().startsWith('ru')) select(nav.lastElementChild);
+</script>
+
+</body>
+</html>
