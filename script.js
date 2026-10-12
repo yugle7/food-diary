@@ -4300,7 +4300,7 @@ const renderHeatmap = (id, matrix, max) => {
   const w = Math.max(260, el.clientWidth || 320);
   const left = 36;
   const cell = (w - left - 4) / 24;
-  const ch = 18;
+  const ch = cell - 2; // square cell with a 2px gutter on both axes
   const h = 7 * (ch + 2) + 20;
 
   const cells = matrix

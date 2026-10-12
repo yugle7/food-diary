@@ -1,5 +1,5 @@
 const APP_PREFIX = "num-num-";
-const VERSION = "2026-10-12d"; // matches version in manifest.webmanifest
+const VERSION = "2026-10-12e"; // matches version in manifest.webmanifest
 const REFS_VERSION = "2"; // bumped only when foods.js changes
 
 const STATIC_CACHE = `${APP_PREFIX}static-${VERSION}`;
