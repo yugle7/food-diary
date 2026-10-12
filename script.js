@@ -1,8 +1,8 @@
 // ==========================================================================
-// 1. КОНСТАНТЫ
+// 1. CONSTANTS
 // ==========================================================================
 
-const APP_NAME = "food-diary";
+const APP_NAME = "num-num";
 
 const NUTRIENT_KEYS = [
   "kcal",
@@ -11,9 +11,9 @@ const NUTRIENT_KEYS = [
   "carbs",
   "fiber",
   "sugar",
-  "freeSugar",
   "salt",
   "satFat",
+  "freeSugar",
   "transFat",
 ];
 
@@ -33,7 +33,7 @@ const MICRO_KEYS = [
   "zinc",
 ];
 
-// Суточные нормы (FDA Daily Values)
+// FDA Daily Values
 const MICRO_NORMALS = {
   vitaminA: 900,
   vitaminC: 90,
@@ -66,7 +66,7 @@ const MAX_GRAMS = 5000;
 const DEFAULT_SERVING = 100;
 const STEP_KCAL = 0.0005;
 
-const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
+const MEAL_TYPES = [SNACK, BREAKFAST, LUNCH, DINNER];
 const NORM_RATIO_HIGH = 1.1;
 const PHOTO_MAX_WIDTH = 1280;
 const PHOTO_QUALITY = 0.82;
@@ -76,8 +76,8 @@ const LOSE = -1;
 const GAIN = 1;
 
 const DEFAULT_PERSON = {
-  sex: true,
-  birthdate: null,
+  sex: 1,
+  birthdate: 0,
   height: 175,
   weight: 70,
   activity: 1.375,
@@ -126,7 +126,7 @@ const STORAGE_KEYS = [
 ];
 
 // ==========================================================================
-// 2. ВНЕШНИЕ ДАННЫЕ
+// 2. EXTERNAL DATA
 // ==========================================================================
 
 const REFS = Array.isArray(window.REFS)
@@ -136,7 +136,7 @@ const translations = window.TRANSLATIONS || {};
 const PHOTO_API_URL = window.PHOTO_API_URL || "";
 
 // ==========================================================================
-// 3. СОСТОЯНИЕ
+// 3. STATE
 // ==========================================================================
 
 let S = {};
@@ -149,7 +149,7 @@ let tags = [];
 let favorites = [];
 let recents = [];
 
-const log = {
+const logs = {
   water: [],
   sleep: [],
   steps: [],
@@ -166,12 +166,12 @@ let chosenButton = null;
 let page = null;
 let link = null;
 
-// Индексы, сбрасываются при изменении данных
+// Indexes are reset when data changes
 let dayIndex = null;
 let frequency = null;
 
 // ==========================================================================
-// 4. УТИЛИТЫ
+// 4. UTILS
 // ==========================================================================
 
 const $ = (id) => document.getElementById(id);
@@ -216,18 +216,15 @@ const round = (x, d = 0) => Math.round(x * 10 ** d) / 10 ** d;
 const fmt = (x, d = 0) => (x ? String(round(x, d)).replace(".", ",") : "—");
 
 const clean = (s) =>
-  [
-    ...String(s)
-      .normalize("NFKC")
-      .replace(/[^\p{L}\p{M}\p{N}\s-]/gu, " ")
-      .replace(/\s+/gu, " ")
-      .trim(),
-  ]
-    .slice(0, 100)
-    .join(" ");
+  String(s)
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{M}\p{N}\s-]/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 100);
 
 const norm = (s) =>
-  s.trim().toLowerCase().replace("ё", "е").replace(/\s+/g, " ");
+  s.trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
 
 const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
@@ -253,15 +250,15 @@ const emptyNutrition = () =>
 const emptyMicro = () => Object.fromEntries(MICRO_KEYS.map((k) => [k, null]));
 
 // ==========================================================================
-// 5. РАСЧЕТЫ
+// 5. CALCULATIONS
 // ==========================================================================
 
-// Единственный источник агрегатов по позициям приема или дня
+// The only source of per-meal or per-day aggregates
 const sumItems = (items) => {
   const r = {
     grams: 0,
     ...emptyNutrition(),
-    ...emptyMicro(),
+    micro: emptyMicro(),
     healthScore: null,
   };
   const healthScore = {
@@ -281,7 +278,7 @@ const sumItems = (items) => {
       NUTRIENT_KEYS.forEach((k) => (r[k] += (item.nutrition[k] || 0) * f));
 
     if (item.micro)
-      MICRO_KEYS.forEach((k) => (r[k] += (item.micro[k] || 0) * f));
+      MICRO_KEYS.forEach((k) => (r.micro[k] += (item.micro[k] || 0) * f));
 
     if (item.healthScore) {
       const kcal = item.nutrition ? (item.nutrition.kcal || 0) * f : 0;
@@ -299,12 +296,12 @@ const sumItems = (items) => {
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
-const computeHealth = (nutrition, micro) => {
-  const { kcal, protein, fat, fiber, freeSugar, salt, satFat, transFat } =
+const computeHealth = (nutrition, micro = {}) => {
+  let { kcal, protein, fat, fiber, freeSugar, salt, satFat, transFat } =
     nutrition;
   const unsatFat = Math.max(0, fat - satFat - transFat);
 
-  const microCoverage = Object.entries(micro ?? {}).reduce(
+  const microCoverage = Object.entries(micro).reduce(
     (s, [k, v]) => s + Math.min(v / MICRO_NORMALS[k], 1),
     0,
   );
@@ -326,8 +323,8 @@ const computeHealth = (nutrition, micro) => {
 const healthColor = (score) => {
   const s = score / 50;
   const r = s < 1 ? 200 : 330 - 130 * s;
-  const g = s < 1 ? 120 + 50 * s : 170;
-  const b = s < 1 ? 120 - 40 * s : 80 + 60 * s;
+  const g = 120 + 50 * s;
+  const b = s < 1 ? 120 - 40 * s : 40 + 40 * s;
   return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
 };
 
@@ -369,7 +366,7 @@ const updatePerson = () => {
   person.goals = computeGoals(person);
 };
 
-// Последнее измерение до 12:00, иначе первое измерение дня
+// The last measurement before noon counts; otherwise it is the first measurement of the day
 const morningWeight = (entries) => {
   if (!entries.length) return null;
   const sorted = [...entries].sort((a, b) => a.date - b.date);
@@ -418,7 +415,7 @@ const computeFromIngredients = (ingredients, yieldGrams) => {
 };
 
 // ==========================================================================
-// 6. ПРОДУКТЫ И ПОИСК
+// 6. PRODUCTS AND SEARCH
 // ==========================================================================
 
 const findFood = (id) =>
@@ -547,7 +544,6 @@ const foodKeys = (f) => {
 };
 
 const matchScore = (food, query) => {
-  query = normalizePhrase(query);
   if (!query) return 0;
 
   let score = 0;
@@ -571,7 +567,7 @@ const getFrequency = () => {
 
 const activeFoods = () => [...foods.filter((f) => !f.archived), ...REFS];
 
-// Сравнение кандидатов: уверенность, свой продукт, избранное, частота, короткое имя
+// Candidate comparison: confidence, custom food, favorites, frequency, shorter name
 const compareMatches = (a, b) => {
   const f = getFrequency();
   return (
@@ -583,19 +579,19 @@ const compareMatches = (a, b) => {
   );
 };
 
-const rankFoods = (text, foods = activeFoods()) => {
+const rankFoods = (text, pool = activeFoods()) => {
   const query = normalizePhrase(text);
   if (!query) return [];
-  return foods
+  return pool
     .map((food) => ({ food, confidence: matchScore(food, query) }))
     .filter((m) => m.confidence >= 0.5)
     .sort(compareMatches);
 };
 
-const matchFood = (text, foods) => rankFoods(text, foods)[0] || null;
+const matchFood = (text, pool) => rankFoods(text, pool)[0] || null;
 
 // ==========================================================================
-// 7. ПАРСЕР
+// 7. PARSER
 // ==========================================================================
 
 const unitOf = (word) => {
@@ -620,18 +616,18 @@ const unitOf = (word) => {
   return null;
 };
 
-// Единицы, которые можно указать без числа: «стакан молока»
+// Units that can be written without a number: "a glass of milk"
 const COUNTABLE_UNITS = ["pc", "tsp", "tbsp", "cup", "serving"];
 
 const toGrams = (count, unit, food) => {
-  const serving = food.servingGrams || DEFAULT_SERVING;
+  const serving = food?.servingGrams || DEFAULT_SERVING;
   const k =
     {
       g: 1,
       kg: 1000,
       ml: 1,
       l: 1000,
-      pc: food.pieceGrams || serving,
+      pc: food?.pieceGrams || serving,
       tsp: 5,
       tbsp: 15,
       cup: 200,
@@ -664,15 +660,16 @@ const parseQuantity = (fragment) => {
   const number = text.match(/(\d+(?:[.,]\d+)?)\s*([a-zа-я]+\.?)?/i);
   if (number) {
     const count = +number[1].replace(",", ".");
-    const unit = number[2] ? unitOf(number[2]) : null;
+    let unit = number[2] ? unitOf(number[2]) : null;
     const consumed = unit ? number[0] : number[1];
-    // Вырезаем число по позиции совпадения, а не первое вхождение в строке
+    // Cut out the number by match position, not the first occurrence in the string
     const name =
       text.slice(0, number.index) +
       " " +
       text.slice(number.index + consumed.length);
-    if (unit) return { count, unit, name };
-    return { count, unit: count <= 20 ? "pc" : "g", name };
+
+    if (!unit) unit = count <= 20 ? "pc" : "g";
+    return { count, unit, name };
   }
 
   const words = text.split(/\s+/);
@@ -701,8 +698,8 @@ const parseMeal = (text) =>
   splitFragments(text).map((fragment) => {
     let { count, unit, name } = parseQuantity(fragment);
     name = clean(name);
-    const match = name && matchFood(name);
-    const grams = match && toGrams(count, unit, match.food);
+    const match = name ? matchFood(name) : null;
+    const grams = toGrams(count, unit, match?.food);
 
     if (match) {
       return {
@@ -728,7 +725,7 @@ const isProblem = (item) =>
   item.foodId == null || (item.confidence < 0.5 && !item.confirmed);
 
 // ==========================================================================
-// 8. ЧИСЛОВЫЕ МАСКИ
+// 8. NUMERIC MASKS
 // ==========================================================================
 
 const normalizeNumber = (v, max, decimals) => {
@@ -749,10 +746,8 @@ const normalizeNumber = (v, max, decimals) => {
 };
 
 const parseNumber = (s) => {
-  s = String(s ?? "").trim();
-  if (s === "" || s === ",") return null;
-  const v = +s.replace(",", ".");
-  return Number.isNaN(v) ? null : v;
+  const v = Number(s.replace(",", "."));
+  return s.trim() && Number.isFinite(v) ? v : null;
 };
 
 const maskNumber = (input, max, decimals) => {
@@ -771,10 +766,10 @@ const maskNumber = (input, max, decimals) => {
 };
 
 // ==========================================================================
-// 9. DOM-ССЫЛКИ
+// 9. DOM LINKS
 // ==========================================================================
 
-/* --- Страницы и навигация --- */
+/* --- Pages and navigation --- */
 const pages = {
   diary: $("diary-page"),
   meal: $("meal-page"),
@@ -794,7 +789,7 @@ const navLinks = {
   settings: $("nav-settings"),
 };
 
-/* --- Дневник --- */
+/* --- Diary --- */
 const calendar = $("calendar");
 const calendars = $("calendars");
 const chosenDay = $("chosen-day");
@@ -802,7 +797,7 @@ const daySummary = $("day-summary");
 const dayLogs = $("day-logs");
 const dayMealsList = $("day-meals");
 
-/* --- Прием пищи --- */
+/* --- Eating --- */
 const mealDate = $("meal-date");
 const mealTime = $("meal-time");
 const mealType = $("meal-type");
@@ -824,7 +819,7 @@ const mealDelete = $("meal-delete");
 const confirmButton = $("confirm");
 const cancelButton = $("cancel");
 
-/* --- Продукт / рецепт --- */
+/* --- Product / recipe --- */
 const dishKind = $("dish-kind");
 const dishName = $("dish-name");
 const dishBasis = $("dish-basis");
@@ -857,14 +852,14 @@ const dishArchive = $("dish-archive");
 const dishSave = $("dish-save");
 const dishCancel = $("dish-cancel");
 
-/* --- Оверлей и модальное окно --- */
+/* --- Overlay and modal window --- */
 const overlay = $("overlay");
 const modal = $("modal");
 const question = $("question");
 const modalYes = $("modal-yes");
 const modalNo = $("modal-no");
 
-/* --- Поиск --- */
+/* --- Search --- */
 const searchSheet = $("search-sheet");
 const searchInput = $("search-input");
 const searchClear = $("search-clear");
@@ -873,7 +868,7 @@ const searchResults = $("search-results");
 const searchCreate = $("search-create");
 const searchCancel = $("search-cancel");
 
-/* --- Порция --- */
+/* --- Portion --- */
 const portionSheet = $("portion-sheet");
 const portionTitle = $("portion-title");
 const portionNote = $("portion-note");
@@ -886,7 +881,7 @@ const portionDelete = $("portion-delete");
 const portionConfirmItem = $("portion-confirm-item");
 const portionConfirm = $("portion-confirm");
 
-/* --- Теги --- */
+/* --- Tags --- */
 const tagsSheet = $("tags-sheet");
 const tagInput = $("tag");
 const createTagButton = $("create-tag");
@@ -894,7 +889,7 @@ const tagActions = $("tag-actions");
 const closeTags = $("close-tags");
 const applyTags = $("apply-tags");
 
-/* --- Пикер даты/времени --- */
+/* --- Date/Time picker --- */
 const whenPicker = $("when-picker");
 const whenCalendar = $("when-calendar");
 const whenDays = $("when-days");
@@ -909,7 +904,7 @@ const minuteButton = $("minute");
 const closeWhen = $("close-when");
 const applyWhen = $("apply-when");
 
-/* --- Профиль --- */
+/* --- Profile --- */
 const personButton = $("person");
 const goalsList = $("goals");
 const personPicker = $("person-picker");
@@ -926,14 +921,14 @@ const importButton = $("import");
 const importInput = $("import-input");
 const resetButton = $("reset");
 
-/* --- Детали дня --- */
+/* --- Day details --- */
 const statsSheet = $("stats-sheet");
 const statsSheetTitle = $("stats-sheet-title");
 const dayRings = $("day-rings");
 const dayMicro = $("day-micro");
 const dayMealShares = $("day-meal-shares");
 
-/* --- Журнал --- */
+/* --- Logs --- */
 const logSheet = $("log-sheet");
 const logTitle = $("log-title");
 const logValue = $("log-value");
@@ -942,14 +937,14 @@ const logQuick = $("log-quick");
 const closeLog = $("close-log");
 const applyLog = $("apply-log");
 
-/* --- Статистика --- */
+/* --- Statistics --- */
 const periodArea = $("period");
 const rangeArea = $("range");
 const rangeLabel = $("range-label");
 const chartTip = $("chart-tip");
 
 // ==========================================================================
-// 10. ЛОКАЛИЗАЦИЯ
+// 10. LANGUAGE
 // ==========================================================================
 
 const setLanguage = () => {
@@ -989,7 +984,7 @@ const setLanguage = () => {
 };
 
 // ==========================================================================
-// 11. ХРАНИЛИЩЕ
+// 11. STORAGE
 // ==========================================================================
 
 const read = (key, fallback) => {
@@ -1026,10 +1021,10 @@ const saveFoods = () => write("foods", foods);
 const saveTags = () => write("tags", tags);
 const saveFavorites = () => write("favorites", favorites);
 const saveRecents = () => write("recents", recents);
-const saveWeight = () => write("weight", log.weight);
-const saveWater = () => write("water", log.water);
-const saveSleep = () => write("sleep", log.sleep);
-const saveActivity = () => write("activity", log.activity);
+const saveWeight = () => write("weight", logs.weight);
+const saveWater = () => write("water", logs.water);
+const saveSleep = () => write("sleep", logs.sleep);
+const saveActivity = () => write("activity", logs.activity);
 
 const personToStore = () => {
   const { sex, birthdate, height, weight, activity, weightGoal } = person;
@@ -1052,27 +1047,18 @@ const loadMeals = () => {
 };
 
 const loadFoods = () => {
-  foods = read("foods", [])
-    .filter(Boolean)
-    .map((f) => {
-      if (f.ru == null && f.name != null) {
-        const { name, ...rest } = f;
-        return { ...rest, ru: name };
-      }
-      return f;
-    });
+  foods = read("foods", []).filter(Boolean);
 };
 
 const loadJournals = () => {
-  log.weight = read("weight", []);
-  log.water = read("water", []);
-  log.sleep = read("sleep", []);
-  log.activity = read("activity", []);
+  logs.weight = read("weight", []);
+  logs.water = read("water", []);
+  logs.sleep = read("sleep", []);
+  logs.activity = read("activity", []);
 };
 
-const loadAux = () => {
-  const stored = read("tags", null);
-  tags = Array.isArray(stored) ? stored.filter(Boolean) : [...S.defaultTags];
+const loadTags = () => {
+  tags = read("tags", [...S.defaultTags]).filter(Boolean);
   favorites = read("favorites", []);
   recents = read("recents", []);
 };
@@ -1082,7 +1068,7 @@ const loadAll = () => {
   loadMeals();
   loadFoods();
   loadJournals();
-  loadAux();
+  loadTags();
   invalidate();
 };
 
@@ -1100,7 +1086,7 @@ const updateRecents = (items) => {
   saveRecents();
 };
 
-/* --- Экспорт и импорт --- */
+/* --- Export and import --- */
 
 const exportData = () => {
   const data = {
@@ -1109,10 +1095,7 @@ const exportData = () => {
     meals,
     foods,
     person: personToStore(),
-    weight: log.weight,
-    water: log.water,
-    sleep: log.sleep,
-    activity: log.activity,
+    ...logs,
     tags,
     favorites,
     recents,
@@ -1143,7 +1126,7 @@ const validImport = (data) => {
       data.person;
     return (
       data.app === APP_NAME &&
-      [sex, height, weight, activity, weightGoal, birthdate].every(
+      [height, weight, activity, sex, weightGoal, birthdate].every(
         Number.isFinite,
       ) &&
       IMPORT_ARRAYS.every((k) => Array.isArray(data[k])) &&
@@ -1162,10 +1145,7 @@ const validImport = (data) => {
 const importData = (data) => {
   const payload = Object.fromEntries(IMPORT_ARRAYS.map((k) => [k, data[k]]));
   payload.person = data.person;
-  payload.schemaVersion = data.schemaVersion;
-  // Пишем все ключи сразу: при ошибке квоты прерываем, не оставляя половину
   if (!Object.keys(payload).every((k) => write(k, payload[k]))) return;
-  migrate();
   loadAll();
   date = new Date();
   calendarDate = new Date(date);
@@ -1175,7 +1155,6 @@ const importData = (data) => {
 
 const resetData = async () => {
   STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
-  migrate();
   loadAll();
   await clearPhotos();
   date = new Date();
@@ -1184,7 +1163,7 @@ const resetData = async () => {
 };
 
 // ==========================================================================
-// 12. ФОТОГРАФИИ (IndexedDB + Yandex Object Storage)
+// 12. PHOTOS (IndexedDB + Yandex Object Storage)
 // ==========================================================================
 
 let photoDb = null;
@@ -1312,7 +1291,7 @@ const syncPhotos = async () => {
             headers: { "Content-Type": record.mime },
           });
           if (!response.ok) throw new Error(`upload ${response.status}`);
-          // Перечитываем запись: за время загрузки фото могли пометить удалённым
+          // Re-read the record: the photo may have been marked deleted during the upload
           const current = await getPhoto(record.id).catch(() => null);
           if (current && current.status !== "deleted") {
             await putPhoto({ ...current, status: "uploaded" });
@@ -1340,7 +1319,6 @@ const getPhotoUrl = async (id) => {
   let url = null;
   const record = photoDb ? await getPhoto(id).catch(() => null) : null;
   if (record?.blob) {
-    // Кэшируются только локальные object-URL: пресайненные ссылки временные
     url = URL.createObjectURL(record.blob);
     photoUrls.set(id, url);
   } else if (
@@ -1405,7 +1383,7 @@ const renderPhoto = async (container, id) => {
 };
 
 // ==========================================================================
-// 13. НАВИГАЦИЯ, ШТОРКИ, МОДАЛЬНОЕ ОКНО
+// 13. NAVIGATION, SHEETS, MODAL WINDOW
 // ==========================================================================
 
 const renderPage = (name, withLink = true) => {
@@ -1498,7 +1476,7 @@ document.addEventListener("keydown", (e) => {
   else closeSheet();
 });
 
-/* --- Сегменты --- */
+/* --- Segments --- */
 
 const setSegment = (segment, value, attr) => {
   const buttons = [...segment.querySelectorAll("button")];
@@ -1536,10 +1514,10 @@ const segmentHtml = (attr, options, value) => {
 const healthbar = (score) =>
   score == null
     ? ""
-    : `<div class="healthbar" style="--score:${Math.round(score)};--color:var(${healthColor(score)})"></div>`;
+    : `<div class="healthbar" style="--score:${Math.round(score)};--color:${healthColor(score)}"></div>`;
 
 // ==========================================================================
-// 14. ДНЕВНИК
+// 14. DIARY
 // ==========================================================================
 
 const getDayIndex = () => {
@@ -1568,13 +1546,13 @@ const daySum = (key) => {
 const dayEntries = (journal, key) =>
   journal.filter((e) => getDate(e.date) === key);
 const dayWater = (key) =>
-  dayEntries(log.water, key).reduce((s, e) => s + e.ml, 0);
-const daySleep = (key) => dayEntries(log.sleep, key)[0]?.hours ?? null;
-const daySteps = (key) => dayEntries(log.activity, key)[0]?.steps ?? null;
+  dayEntries(logs.water, key).reduce((s, e) => s + e.ml, 0);
+const daySleep = (key) => dayEntries(logs.sleep, key)[0]?.hours ?? null;
+const daySteps = (key) => dayEntries(logs.activity, key)[0]?.steps ?? null;
 const dayWeight = (key) =>
-  morningWeight(dayEntries(log.weight, key))?.weight ?? null;
+  morningWeight(dayEntries(logs.weight, key))?.weight ?? null;
 
-/* --- Календарь --- */
+/* --- Calendar --- */
 
 const getMarkHtml = (key) => {
   if (!dayMeals(key).length) return "";
@@ -1665,7 +1643,7 @@ calendar.addEventListener("click", (e) => {
   renderDay();
 });
 
-/* --- Свайп между месяцами --- */
+/* --- Swipe between months --- */
 
 let startX = null;
 let dragging = false;
@@ -1735,7 +1713,7 @@ const stopDragging = () => {
 calendar.addEventListener("pointerup", stopDragging);
 calendar.addEventListener("pointercancel", stopDragging);
 
-/* --- Сводка, журналы, список приемов --- */
+/* --- Summary, logs, meal list --- */
 
 const renderSummary = () => {
   const key = getDate(date);
@@ -1751,8 +1729,8 @@ const renderSummary = () => {
             <div class="labels mono">${fmt(s.kcal)} / ${fmt(g.kcal)} ${S.kcalUnit}</div>
         </div>
         <div class="macros small mono help">
-            ${pair(S.P, s.protein, g.protein)} · ${pair(S.F, s.fat, g.fat)} · ${pair(S.C, s.carbs, g.carbs)} ·
-            ${S.W} ${fmt(water / 1000, 1)}/${fmt(g.water / 1000, 1)} ${S.l}
+            ${pair(S.protein[0], s.protein, g.protein)} · ${pair(S.fat[0], s.fat, g.fat)} · ${pair(S.carbs[0], s.carbs, g.carbs)} ·
+            ${S.water[0]} ${fmt(water / 1000, 1)}/${fmt(g.water / 1000, 1)} ${S.l}
         </div>`;
 };
 
@@ -1775,7 +1753,7 @@ const renderLogs = () => {
   dayLogs.innerHTML = Object.entries(LOGS)
     .map(
       ([kind, { icon }]) => `
-        <button class="log-chip" data-kind="${kind}" aria-label="${S.logTitles[kind]}">
+        <button class="log-chip" data-kind="${kind}" aria-label="${S[kind]}">
             <svg class="tool"><use href="sprite.svg#${icon}"></use></svg>
             <span class="mono small">${logText(kind, key)}</span>
         </button>`,
@@ -1841,7 +1819,7 @@ dayLogs.onclick = (e) => {
 };
 
 // ==========================================================================
-// 15. ЖУРНАЛ ДНЯ (#log-sheet)
+// 15. DAY LOG (#log-sheet)
 // ==========================================================================
 
 let logKind = null;
@@ -1864,7 +1842,7 @@ const logCurrent = (kind, key) =>
 const openLogSheet = (kind) => {
   logKind = kind;
   const cfg = LOGS[kind];
-  logTitle.textContent = `${S.logTitles[kind]} · ${getDateText(date)}`;
+  logTitle.textContent = `${S[kind]} · ${getDateText(date)}`;
   logUnit.textContent = S.logUnits[kind];
   logValue.value = fmt(logCurrent(kind, getDate(date)), cfg.decimals);
   logValue.inputMode = cfg.decimals ? "decimal" : "numeric";
@@ -1893,17 +1871,17 @@ logQuick.onclick = (e) => {
 };
 
 const applyWaterLog = (key, value) => {
-  const entries = dayEntries(log.water, key).sort((a, b) => b.date - a.date);
+  const entries = dayEntries(logs.water, key).sort((a, b) => b.date - a.date);
   const old = entries.reduce((s, e) => s + e.ml, 0);
   let diff = (value || 0) - old;
-  if (diff > 0) log.water.push({ date: logTime(12), ml: diff });
+  if (diff > 0) logs.water.push({ date: logTime(12), ml: diff });
   for (const e of entries) {
     if (diff >= 0) break;
     const d = Math.min(e.ml, -diff);
     e.ml -= d;
     diff += d;
   }
-  log.water = log.water.filter((e) => e.ml > 0);
+  logs.water = logs.water.filter((e) => e.ml > 0);
   saveWater();
 };
 
@@ -1913,17 +1891,17 @@ const applyDailyLog = (entries, key, entry) => {
 };
 
 const applyWeightLog = (key, value) => {
-  const target = morningWeight(dayEntries(log.weight, key));
+  const target = morningWeight(dayEntries(logs.weight, key));
   if (value == null)
-    log.weight = log.weight.filter((e) => getDate(e.date) !== key);
+    logs.weight = logs.weight.filter((e) => getDate(e.date) !== key);
   else if (target) target.weight = value;
-  else log.weight.push({ date: logTime(8), weight: value });
+  else logs.weight.push({ date: logTime(8), weight: value });
   saveWeight();
   syncPersonWeight();
 };
 
 const syncPersonWeight = () => {
-  const last = [...log.weight].sort((a, b) => a.date - b.date).at(-1);
+  const last = [...logs.weight].sort((a, b) => a.date - b.date).at(-1);
   if (last) person.weight = last.weight;
   savePerson();
 };
@@ -1935,15 +1913,15 @@ applyLog.onclick = () => {
 
   if (logKind === "water") applyWaterLog(key, value);
   else if (logKind === "sleep") {
-    log.sleep = applyDailyLog(
-      log.sleep,
+    logs.sleep = applyDailyLog(
+      logs.sleep,
       key,
       value ? { date: day, hours: value } : null,
     );
     saveSleep();
   } else if (logKind === "steps") {
-    log.activity = applyDailyLog(
-      log.activity,
+    logs.activity = applyDailyLog(
+      logs.activity,
       key,
       value
         ? {
@@ -1963,7 +1941,7 @@ applyLog.onclick = () => {
 closeLog.onclick = closeSheet;
 
 // ==========================================================================
-// 16. ДЕТАЛИ ДНЯ (#stats-sheet)
+// 16. DETAILS OF THE DAY (#stats-sheet)
 // ==========================================================================
 
 const RING_LENGTH = 2 * Math.PI * 28;
@@ -1983,7 +1961,7 @@ const ringHtml = (value, goal, color, label, unit) => {
 
 const microEntries = (micro, factor = 1) =>
   MICRO_KEYS.map((k) => ({
-    label: `${S.micro[k]}`,
+    label: `${S[k]}`,
     value:
       micro[k] == null ? null : ((micro[k] * factor) / MICRO_NORMALS[k]) * 100,
   }));
@@ -2035,7 +2013,7 @@ const openStatsSheet = () => {
 };
 
 // ==========================================================================
-// 17. ПРИЕМ ПИЩИ
+// 17. MEAL PAGE
 // ==========================================================================
 
 let meal = null;
@@ -2047,10 +2025,10 @@ let typeTouched = false;
 
 const autoType = (eaten) => {
   const h = new Date(eaten).getHours();
-  if (h >= 5 && h <= 10) return "breakfast";
-  if (h >= 11 && h <= 15) return "lunch";
-  if (h >= 16 && h <= 20) return "dinner";
-  return "snack";
+  if (h >= 5 && h <= 10) return BREAKFAST;
+  if (h >= 11 && h <= 15) return LUNCH;
+  if (h >= 16 && h <= 20) return DINNER;
+  return SNACK;
 };
 
 const newMeal = () => {
@@ -2109,7 +2087,7 @@ mealType.onclick = () => {
 mealDate.onclick = () => openWhenPicker(toDay);
 mealTime.onclick = () => openWhenPicker(toHour);
 
-/* --- Текст и парсинг --- */
+/* --- Text and parsing --- */
 
 const applyParse = () => {
   const parsed = parseMeal(mealText.value);
@@ -2149,13 +2127,13 @@ clearText.onclick = () => {
   mealText.focus();
 };
 
-/* --- Голос --- */
+/* --- Voice --- */
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (!Recognition) iconVoice.classList.add("hidden");
 
 iconVoice.onclick = () => {
-  // Защита от двойного тапа: не запускаем второе распознавание
+  // Double tap protection: do not start the second recognition
   if (iconVoice.classList.contains("listening")) return;
 
   const recognition = new Recognition();
@@ -2174,7 +2152,7 @@ iconVoice.onclick = () => {
   recognition.start();
 };
 
-/* --- Фото --- */
+/* --- Photo --- */
 
 iconPhoto.onclick = () => photoInput.click();
 
@@ -2198,7 +2176,7 @@ mealPhoto.onclick = (e) => {
   renderPhoto(mealPhoto, null);
 };
 
-/* --- Быстрые подсказки --- */
+/* --- Quick picks --- */
 
 const recentPicks = () =>
   recents
@@ -2251,7 +2229,7 @@ quickPicks.onclick = (e) => {
   addItem(findFood(+button.dataset.id), +button.dataset.grams, quickTab);
 };
 
-/* --- Позиции --- */
+/* --- Items --- */
 
 const addItem = (food, grams, source) => {
   meal.items.push(makeItem(food, grams, source));
@@ -2311,7 +2289,7 @@ mealItems.onkeydown = (e) => {
   }
 };
 
-/* --- Теги --- */
+/* --- Tags --- */
 
 const renderMealTags = () => {
   const list = [...tags, ...[...mealTags].filter((t) => !tags.includes(t))];
@@ -2324,7 +2302,7 @@ const renderMealTags = () => {
   [...tagButtons.children].forEach((el, i) => (el.dataset.tag = list[i]));
 };
 
-// Общий обработчик выбора тегов для приема пищи и редактора продукта
+// Shared tag-chip handler for meals and the product editor
 const bindTagChips = (container, getSet) =>
   container.addEventListener("click", (e) => {
     const button = e.target.closest("button");
@@ -2338,7 +2316,7 @@ const bindTagChips = (container, getSet) =>
 
 bindTagChips(tagButtons, () => mealTags);
 
-/* --- Заметка --- */
+/* --- Note --- */
 
 mealNote.addEventListener(
   "input",
@@ -2407,7 +2385,7 @@ mealDelete.onclick = () =>
   });
 
 // ==========================================================================
-// 18. ПОИСК (#search-sheet)
+// 18. SEARCH (#search-sheet)
 // ==========================================================================
 
 let searchContext = { type: "meal" };
@@ -2576,7 +2554,7 @@ iconSearch.onclick = () => openSearch("meal");
 iconStar.onclick = () => openSearch("meal", { tab: "favorites" });
 
 // ==========================================================================
-// 19. ПОРЦИЯ (#portion-sheet)
+// 19. PORTION (#portion-sheet)
 // ==========================================================================
 
 let portionIndex = null;
@@ -2679,7 +2657,7 @@ portionCreate.onclick = () => {
 };
 
 // ==========================================================================
-// 20. РЕДАКТОР ТЕГОВ (#tags-sheet)
+// 20. TAG EDITOR (#tags-sheet)
 // ==========================================================================
 
 const openTagEditor = () => {
@@ -2727,7 +2705,7 @@ tagActions.onclick = (e) => {
 };
 
 // ==========================================================================
-// 21. ПИКЕР ДАТЫ/ВРЕМЕНИ (#when-picker)
+// 21. DATE PICKER/TIME (#when-picker)
 // ==========================================================================
 
 const CX = 125,
@@ -2978,7 +2956,7 @@ closeWhen.onclick = closeSheet;
 applyWhen.onclick = applyWhenPicker;
 
 // ==========================================================================
-// 22. ПРОДУКТ / БЛЮДО / РЕЦЕПТ (#dish-page)
+// 22. PRODUCT / DISH / RECIPE (#dish-page)
 // ==========================================================================
 
 let dish = null;
@@ -3074,7 +3052,7 @@ onSegment(dishBasis, "basis", (basis) => {
   updateDish();
 });
 
-/* --- Подбор микронутриентов и порции из REFS --- */
+/* --- Micronutrients and portion prefill from REFS --- */
 
 const prefill = (input, value, decimals) => {
   if (input.value !== "" && !input.dataset.auto) return;
@@ -3126,7 +3104,7 @@ Object.entries(dishInputs).forEach(([k, input]) => {
   });
 });
 
-/* --- Чтение и проверка формы --- */
+/* --- Reading and validating the form --- */
 
 const readDish = () => {
   const name = dishName.value.trim();
@@ -3147,7 +3125,13 @@ const readDish = () => {
   }
 
   const values = Object.fromEntries(
-    NUTRIENT_KEYS.map((k) => [k, parseNumber(dishInputs[k].value)]),
+    NUTRIENT_KEYS.map((k) => [
+      k,
+      // freeSugar/transFat have no form field: fall back to sugar / 0
+      k === "freeSugar"
+        ? (parseNumber(dishInputs.sugar.value) ?? 0)
+        : (parseNumber(dishInputs[k]?.value) ?? 0),
+    ]),
   );
   const base = dish.basis === "serving" ? serving : 100;
   const nutrition = Object.fromEntries(
@@ -3199,7 +3183,7 @@ toggleMicro.onclick = () => {
   toggleMicro.textContent = hidden ? S.showMicro : S.hideMicro;
 };
 
-/* --- Ингредиенты --- */
+/* --- Ingredients --- */
 
 const renderIngredients = () => {
   ingredientsList.innerHTML = dish.ingredients
@@ -3248,7 +3232,7 @@ ingredientsList.onclick = (e) => {
 
 addIngredient.onclick = () => openSearch("ingredient");
 
-/* --- Теги и фото --- */
+/* --- Tags and photo --- */
 
 const renderDishTags = () => {
   dishTags.innerHTML = dish.autoTags
@@ -3286,7 +3270,7 @@ dishPhoto.onclick = (e) => {
   renderPhoto(dishPhoto, null);
 };
 
-/* --- Сохранение --- */
+/* --- Save --- */
 
 dishSave.onclick = () => {
   const r = readDish();
@@ -3338,7 +3322,7 @@ dishArchive.onclick = () =>
   });
 
 // ==========================================================================
-// 23. ПРОФИЛЬ
+// 23. PROFILE
 // ==========================================================================
 
 let sex = DEFAULT_PERSON.sex;
@@ -3409,7 +3393,7 @@ const applyPersonPicker = () => {
 
   const weight = parseNumber(weightInput.value);
   if (weight && weight !== person.weight) {
-    log.weight.push({ date: Date.now(), weight });
+    logs.weight.push({ date: Date.now(), weight });
     saveWeight();
     person.weight = weight;
   }
@@ -3423,14 +3407,14 @@ personButton.onclick = openPersonPicker;
 closePerson.onclick = closeSheet;
 applyPerson.onclick = applyPersonPicker;
 
-onSegment(sexInput, "sex", (v) => (sex = v === "male"));
+onSegment(sexInput, "sex", (v) => (sex = v === "male" ? 1 : 0));
 onSegment(activityInput, "activity", (v) => (activity = +v));
 onSegment(goalInput, "goal", (v) => (weightGoal = v));
 
 maskNumber(heightInput, 250, 0);
 maskNumber(weightInput, 500, 1);
 
-/* --- Дата рождения (как в Poop Tracker) --- */
+/* --- Birthdate --- */
 
 const YY = new Date().getFullYear() % 100;
 
@@ -3606,7 +3590,7 @@ const validDate = () => {
   );
 };
 
-/* --- Экспорт, импорт, сброс --- */
+/* --- Export, Import, Reset --- */
 
 exportButton.onclick = exportData;
 importButton.onclick = () => importInput.click();
@@ -3628,7 +3612,7 @@ importInput.onchange = async () => {
 resetButton.onclick = () => showModal(S.resetQuestion, resetData);
 
 // ==========================================================================
-// 24. СТАТИСТИКА: ПЕРИОД И БАКЕТЫ
+// 24. STATISTICS: PERIOD AND BUCKETS
 // ==========================================================================
 
 let period = WEEK;
@@ -3713,9 +3697,9 @@ const shiftRange = (direction) => {
   renderRange();
 };
 
-/* --- Агрегирование --- */
+/* --- Aggregation --- */
 
-// Дни бакета, которые уже наступили
+// Bucket days that have already passed
 const pastDays = (start, end) => {
   const days = [];
   const limit = startOfDay(new Date());
@@ -3736,7 +3720,7 @@ const DAY_SUM_KEYS = [
 ];
 
 const daySummaryOf = (list) => {
-  // Группируем позиции по типам приема за один проход, без повторных фильтраций
+  // Group items by meal type in one pass, without repeated filtering
   const all = [];
   const byType = {};
   for (const m of list) {
@@ -3768,7 +3752,7 @@ const averageSummaries = (list) => {
   return r;
 };
 
-// День/неделя/месяц на уровне дней: средний день с записями
+// Day/Week/Month at day level: the average day that has entries
 const aggregateDays = (b) =>
   averageSummaries(
     pastDays(b.start, b.end)
@@ -3787,7 +3771,7 @@ const aggregate = (b) => {
 const aggregateWater = (b) => {
   if (b.start > new Date()) return null;
   if (period === DAY) {
-    return log.water
+    return logs.water
       .filter((e) => e.date >= b.start && e.date < b.end)
       .reduce((s, e) => s + e.ml, 0);
   }
@@ -3836,7 +3820,7 @@ const getStreaks = () => {
 };
 
 // ==========================================================================
-// 25. СТАТИСТИКА: УНИВЕРСАЛЬНЫЕ РЕНДЕРЫ (SVG)
+// 25. STATISTICS: UNIVERSAL RENDERERS (SVG)
 // ==========================================================================
 
 const CHART_HEIGHT = 200;
@@ -3908,7 +3892,7 @@ const normalLine = (plot, y, value) =>
     ? ""
     : `<line class="normal" x1="${plot.x0}" x2="${plot.x1}" y1="${y(value)}" y2="${y(value)}"></line>`;
 
-// Подсказка: заголовок и строки {label, value, color}
+// Tip: title and lines {label, value, color}
 const setTips = (id, tips) => chartTips.set(id, tips);
 
 const hitRects = (id, n, x, plot, slot) =>
@@ -4257,7 +4241,7 @@ const renderScatter = (
   const y = (v) =>
     plot.y0 - ((v - sy.lo) / (sy.hi - sy.lo)) * (plot.y0 - plot.y1);
 
-  // Подписи оси X прореживаются, чтобы не наезжать друг на друга
+  // Thin out X-axis labels so they do not collide
   const xText = tickFormat(sx.ticks);
   const labelWidth = Math.max(...sx.ticks.map((v) => xText(v).length)) * 7 + 12;
   const every = Math.ceil((labelWidth * sx.ticks.length) / (plot.x1 - plot.x0));
@@ -4423,7 +4407,7 @@ const renderRadar = (id, axes, values) => {
   el.innerHTML = svg(w, h, grid + labels + shape);
 };
 
-/* --- Подсказка --- */
+/* --- Tip --- */
 
 const showTip = (target, x, y) => {
   const [id, i] = target.dataset.tip.split(":");
@@ -4476,7 +4460,7 @@ pages.stats.addEventListener("pointerdown", (e) => {
 window.addEventListener("scroll", hideTip, { passive: true });
 
 // ==========================================================================
-// 26. СТАТИСТИКА: 15 ГРАФИКОВ
+// 26. STATISTICS: 15 CHARTS
 // ==========================================================================
 
 const setChartValue = (id, text) => {
@@ -4491,10 +4475,10 @@ const average = (values) => {
 
 const MACRO_COLORS = { protein: "--c1", fat: "--c2", carbs: "--c3" };
 const MEAL_COLORS = {
-  breakfast: "--c1",
-  lunch: "--c2",
-  dinner: "--c3",
-  snack: "--c4",
+  [SNACK]: "--c4",
+  [BREAKFAST]: "--c1",
+  [LUNCH]: "--c2",
+  [DINNER]: "--c3",
 };
 const NUTRIENT_CHARTS = ["fiber", "sugar", "salt", "satFat"];
 
@@ -4514,7 +4498,7 @@ const renderStats = () => {
   const dayBuckets =
     period === DAY ? [{ label: getDateText(start), start, end }] : buckets;
 
-  /* 1. Калории */
+  /* 1. Calories */
   const kcal =
     period === DAY ? cumulative(field("kcal"), buckets) : field("kcal");
   const kcalSeries = [{ values: kcal, color: "--accent", label: S.fact }];
@@ -4545,7 +4529,7 @@ const renderStats = () => {
       : "",
   );
 
-  /* 2. БЖУ */
+  /* 2. PFC */
   renderStacked("macros-chart", buckets, ["protein", "fat", "carbs"], sums, {
     normal: showNormal ? g.protein + g.fat + g.carbs : null,
     colors: MACRO_COLORS,
@@ -4553,7 +4537,7 @@ const renderStats = () => {
     unit: S.g,
   });
 
-  /* 3. Баланс */
+  /* 3. Balance */
   const daySums = dayBuckets.map(aggregateDays);
   renderVBars(
     "balance-chart",
@@ -4587,14 +4571,14 @@ const renderStats = () => {
     },
   );
 
-  /* 4. По приемам пищи */
-  renderStacked("mealtype-chart", buckets, MEAL_TYPES, sums, {
+  /* 4. By eatings */
+  renderStacked("meal-type-chart", buckets, MEAL_TYPES, sums, {
     colors: MEAL_COLORS,
     labels: S.mealTypes,
     unit: S.kcalUnit,
   });
 
-  /* 5. Вода */
+  /* 5. Water */
   const water = buckets.map(aggregateWater);
   renderLine(
     "water-chart",
@@ -4609,7 +4593,7 @@ const renderStats = () => {
     { normal: g.water, unit: S.ml },
   );
 
-  /* 6. Калории по тегам */
+  /* 6. Calories by tags */
   const tagKcal = new Map();
   rangeMeals.forEach((m) => {
     const k = sumItems(m.items).kcal;
@@ -4627,7 +4611,7 @@ const renderStats = () => {
       })),
   );
 
-  /* 7. Дни недели */
+  /* 7. Weekdays */
   const weekdays = S.wds.map((label, i) => {
     const list = logged
       .filter((d) => weekdayIndex(d) === i)
@@ -4657,7 +4641,7 @@ const renderStats = () => {
     { unit: S.kcalUnit, height: 140 },
   );
 
-  /* 8. Полезность */
+  /* 8. Health score */
   const allItems = rangeMeals.flatMap((m) => m.items);
   const healthAvg = sumItems(allItems).healthScore;
   renderLine(
@@ -4668,7 +4652,7 @@ const renderStats = () => {
   );
   setChartValue("health-chart", healthAvg == null ? "" : fmt(healthAvg));
 
-  /* 9. Приверженность */
+  /* 9. Streak */
   const fromDay = logged.length ? Math.min(...[...getDayIndex().keys()]) : null;
   const counted = days.filter((d) => fromDay != null && getDate(d) >= fromDay);
   const streak = getStreaks();
@@ -4681,7 +4665,7 @@ const renderStats = () => {
     S.streakText(streak.current, streak.best),
   );
 
-  /* 10. Клетчатка, сахар, соль, насыщенные жиры */
+  /* 10. Fiber, sugar, salt, saturated fats */
   NUTRIENT_CHARTS.forEach((k) => {
     const pct = nutrientMode === "pct";
     const values = field(k).map((v) =>
@@ -4700,11 +4684,11 @@ const renderStats = () => {
     );
   });
 
-  /* 11. Вес */
+  /* 11. Weight */
   const weights = buckets.map((b) => {
     if (period === DAY)
       return average(
-        log.weight
+        logs.weight
           .filter((e) => e.date >= b.start && e.date < b.end)
           .map((e) => e.weight),
       );
@@ -4744,7 +4728,7 @@ const renderStats = () => {
       : "",
   );
 
-  /* 12. Вес и калории */
+  /* 12. Weight and calories */
   renderScatter(
     "weight-kcal-scatter",
     days
@@ -4758,7 +4742,7 @@ const renderStats = () => {
     { xLabel: S.kcal, yLabel: S.weight, xUnit: S.kcalUnit, yUnit: S.kg },
   );
 
-  /* 13. Триггеры */
+  /* 13. Triggers */
   renderScatter(
     "trigger-scatter",
     days
@@ -4782,7 +4766,7 @@ const renderStats = () => {
     },
   );
 
-  /* 14. Часы × дни */
+  /* 14. Hours × weekdays */
   const matrix = Array.from({ length: 7 }, () => Array(24).fill(0));
   rangeMeals.forEach((m) => {
     const d = new Date(m.eaten);
@@ -4790,7 +4774,7 @@ const renderStats = () => {
   });
   renderHeatmap("hour-heatmap", matrix, Math.max(...matrix.flat()));
 
-  /* 15. Микронутриенты */
+  /* 15. Micronutrients */
   const micro = Object.fromEntries(
     MICRO_KEYS.map((k) => {
       const values = logged
@@ -4821,7 +4805,7 @@ const renderStats = () => {
   }
 };
 
-/* --- Переключатели --- */
+/* --- Toggles --- */
 
 rangeArea.addEventListener("click", (e) => {
   const button = e.target.closest("button");
@@ -4879,7 +4863,7 @@ window.addEventListener(
 );
 
 // ==========================================================================
-// 27. ИНИЦИАЛИЗАЦИЯ
+// 27. INIT
 // ==========================================================================
 
 document.querySelectorAll("input:not([type=file])").forEach((input) => {
@@ -4889,7 +4873,6 @@ document.querySelectorAll("input:not([type=file])").forEach((input) => {
 
 (() => {
   setLanguage();
-  migrate();
   prepareRefs();
   loadAll();
 
@@ -4906,7 +4889,7 @@ document.querySelectorAll("input:not([type=file])").forEach((input) => {
   });
   window.addEventListener("online", syncPhotos);
 
-  // today заморожен при загрузке: обновляем при возврате на вкладку (смена суток)
+  // today is frozen at load: refresh it when the tab becomes visible (date change)
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) return;
     const now = new Date();
