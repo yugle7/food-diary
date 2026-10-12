@@ -833,7 +833,9 @@ const dishInputs = {
   fiber: $("dish-fiber"),
   sugar: $("dish-sugar"),
   salt: $("dish-salt"),
-  satFat: $("dish-satfat"),
+  satFat: $("dish-satFat"),
+  freeSugar: $("dish-freeSugar"),
+  transFat: $("dish-transFat"),
 };
 const toggleMicro = $("toggle-micro");
 const dishMicro = $("dish-micro");
@@ -2979,6 +2981,8 @@ const DISH_LIMITS = {
   sugar: [100, 1],
   salt: [100, 2],
   satFat: [100, 1],
+  transFat: [100, 1],
+  freeSugar: [100, 1],
 };
 const PREFILLED = ["fiber", "sugar", "salt", "satFat"];
 
@@ -3132,13 +3136,7 @@ const readDish = () => {
   }
 
   const values = Object.fromEntries(
-    NUTRIENT_KEYS.map((k) => [
-      k,
-      // freeSugar/transFat have no form field: fall back to sugar / 0
-      k === "freeSugar"
-        ? (parseNumber(dishInputs.sugar.value) ?? 0)
-        : (parseNumber(dishInputs[k]?.value) ?? 0),
-    ]),
+    NUTRIENT_KEYS.map((k) => [k, parseNumber(dishInputs[k].value) || 0]),
   );
   const base = dish.basis === "serving" ? serving : 100;
   const nutrition = Object.fromEntries(
