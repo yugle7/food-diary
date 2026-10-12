@@ -46,24 +46,26 @@
 
             <div class="input-row">
                 <div class="text-field">
-                    <input id="meal-text" class="input" maxlength="200" autocomplete="off" enterkeyhint="done"
-                           data-i18n-placeholder="parsePlaceholder" data-i18n-aria-label="parsePlaceholder">
+                    <textarea id="meal-text" class="input" rows="1" maxlength="200" autocomplete="off"
+                              data-i18n-placeholder="parsePlaceholder" data-i18n-aria-label="parsePlaceholder"></textarea>
                     <button id="clear-text" class="clear hidden" data-i18n-aria-label="clear">
                         <svg class="tool"><use href="sprite.svg#close"></use></svg>
                     </button>
                 </div>
-                <button id="icon-photo" class="icon-button needs-photos" data-i18n-aria-label="photo">
-                    <svg class="tool"><use href="sprite.svg#camera"></use></svg>
-                </button>
-                <button id="icon-voice" class="icon-button" data-i18n-aria-label="voice">
-                    <svg class="tool"><use href="sprite.svg#mic"></use></svg>
-                </button>
-                <button id="icon-search" class="icon-button" data-i18n-aria-label="search">
-                    <svg class="tool"><use href="sprite.svg#search"></use></svg>
-                </button>
-                <button id="icon-star" class="icon-button" data-i18n-aria-label="favorites">
-                    <svg class="tool"><use href="sprite.svg#star"></use></svg>
-                </button>
+                <div class="input-actions">
+                    <button id="icon-photo" class="icon-button needs-photos" data-i18n-aria-label="photo">
+                        <svg class="tool"><use href="sprite.svg#camera"></use></svg>
+                    </button>
+                    <button id="icon-voice" class="icon-button" data-i18n-aria-label="voice">
+                        <svg class="tool"><use href="sprite.svg#mic"></use></svg>
+                    </button>
+                    <button id="icon-search" class="icon-button" data-i18n-aria-label="search">
+                        <svg class="tool"><use href="sprite.svg#search"></use></svg>
+                    </button>
+                    <button id="icon-star" class="icon-button" data-i18n-aria-label="favorites">
+                        <svg class="tool"><use href="sprite.svg#star"></use></svg>
+                    </button>
+                </div>
                 <input id="photo-input" type="file" accept="image/*" capture="environment" hidden>
             </div>
             <div id="meal-photo" class="photo hidden"></div>

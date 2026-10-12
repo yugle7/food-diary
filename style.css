@@ -980,8 +980,37 @@ nav > div > button {
 
 .input-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input-actions {
+  display: flex;
+  justify-content: flex-end;
   gap: 2px;
+}
+
+#meal-text {
+  resize: none;
+  overflow: hidden;
+  margin-top: 0;
+  field-sizing: content;
+}
+
+.micro-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+.micro-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--head);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--text);
 }
 
 #icon-voice.listening svg {

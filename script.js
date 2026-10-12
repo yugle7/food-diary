@@ -2054,6 +2054,7 @@ const openMeal = (m, isNew) => {
   typeTouched = !isNew;
 
   mealText.value = "";
+  growMealText();
   clearText.classList.add("hidden");
   mealNote.value = meal.note;
   noteBlock.open = !!meal.note;
@@ -2108,13 +2109,22 @@ const applyParse = () => {
 
 const parseLater = debounce(applyParse, 400);
 
+// Auto-grow fallback for browsers without CSS field-sizing
+const growMealText = () => {
+  if (CSS.supports("field-sizing: content")) return;
+  mealText.style.height = "auto";
+  mealText.style.height = `${mealText.scrollHeight}px`;
+};
+
 mealText.addEventListener("input", () => {
   clearText.classList.toggle("hidden", !mealText.value);
+  growMealText();
   parseLater();
 });
 
 mealText.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
+    e.preventDefault();
     parseLater.flush();
     mealText.blur();
   }
@@ -2123,6 +2133,7 @@ mealText.addEventListener("keydown", (e) => {
 clearText.onclick = () => {
   mealText.value = "";
   clearText.classList.add("hidden");
+  growMealText();
   parseLater.flush();
   mealText.focus();
 };
@@ -2144,6 +2155,7 @@ iconVoice.onclick = () => {
     const current = mealText.value.trim();
     mealText.value = current ? `${current}, ${text}` : text;
     clearText.classList.remove("hidden");
+    growMealText();
     parseLater.flush();
   };
   recognition.onerror = () => iconVoice.classList.remove("listening");
@@ -2570,17 +2582,17 @@ const renderPortionInfo = () => {
     return;
   }
   const f = grams / 100;
+  // Compact list: only micronutrients that matter (>= 10% of daily value)
   const micro = item.micro
     ? microEntries(item.micro, f)
-        .filter((e) => e.value)
+        .filter((e) => e.value >= 10)
         .sort((a, b) => b.value - a.value)
-        .slice(0, 5)
     : [];
   portionInfo.innerHTML = `
         <div class="center mono">${fmt(n.kcal * f)} ${S.kcalUnit}</div>
         <div class="center small help mono">${macrosText(n, f)}</div>
         ${healthbar(item.healthScore)}
-        ${micro.length ? `<div class="h-list">${microBarsHtml(micro)}</div>` : ""}`;
+        ${micro.length ? `<div class="micro-chips">${micro.map((e) => `<span class="micro-chip mono">${e.label} ${Math.round(e.value)}%</span>`).join("")}</div>` : ""}`;
 };
 
 const openPortion = (i) => {
