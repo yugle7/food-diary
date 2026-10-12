@@ -244,8 +244,6 @@ window.TRANSLATIONS = {
     xSteps: "Шаги",
     yKcal: "Калории",
     ySugar: "Сахар",
-    radarMode: "Радар",
-    barsMode: "Полосы",
 
     /* --- Calendar --- */
     mons: [
@@ -510,8 +508,6 @@ window.TRANSLATIONS = {
     xSteps: "Steps",
     yKcal: "Calories",
     ySugar: "Sugar",
-    radarMode: "Radar",
-    barsMode: "Bars",
 
     /* --- Calendar --- */
     mons: [

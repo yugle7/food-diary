@@ -1587,26 +1587,7 @@ h2.group {
   stroke-width: 1;
 }
 
-.chart .grid-poly {
-  fill: none;
-  stroke: var(--line);
-}
-
-.chart .normal-poly {
-  fill: none;
-  stroke: var(--help);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 4;
-}
-
-.chart .radar-shape {
-  fill: var(--accent);
-  fill-opacity: 0.12;
-  stroke: var(--accent);
-  stroke-width: 2;
-}
-
-/* Легенда */
+/* Legend */
 .legend {
   display: flex;
   flex-wrap: wrap;

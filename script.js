@@ -3626,7 +3626,6 @@ let nutrientMode = "sum";
 let lag = 0;
 let triggerX = "sleep";
 let triggerY = "kcal";
-let microMode = "radar";
 
 const getRange = (d, p) => {
   d = startOfDay(d);
@@ -4348,70 +4347,6 @@ const renderHeatmap = (id, matrix, max) => {
   el.innerHTML = svg(w, h, cells + rows + cols);
 };
 
-const renderRadar = (id, axes, values) => {
-  if (!values.some((v) => v > 0)) return empty(id);
-  const el = $(id);
-  const w = Math.max(260, el.clientWidth || 320);
-  const h = 300;
-  const cx = w / 2,
-    cy = h / 2;
-  const R = Math.min(w, h) / 2 - 36;
-  const MAX = 150;
-  const n = axes.length;
-  const point = (i, v, extra = 0) => {
-    const a = -Math.PI / 2 + (2 * Math.PI * i) / n;
-    const r = (R * Math.min(MAX, v)) / MAX + extra;
-    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
-  };
-  const ring = (v) => axes.map((_, i) => point(i, v).join(",")).join(" ");
-
-  const grid =
-    [50, 150]
-      .map((v) => `<polygon class="grid-poly" points="${ring(v)}"></polygon>`)
-      .join("") +
-    `<polygon class="normal-poly" points="${ring(100)}"></polygon>` +
-    axes
-      .map((_, i) => {
-        const [x, y] = point(i, MAX);
-        return `<line class="grid" x1="${cx}" y1="${cy}" x2="${x}" y2="${y}"></line>`;
-      })
-      .join("");
-
-  const labels = axes
-    .map((label, i) => {
-      const [x, y] = point(i, MAX, 18);
-      const anchor = Math.abs(x - cx) < 4 ? "middle" : x > cx ? "start" : "end";
-      return `<text class="tick" x="${x}" y="${y + 4}" text-anchor="${anchor}">${clean(label)}</text>`;
-    })
-    .join("");
-
-  const shape =
-    `<polygon class="radar-shape" points="${values.map((v, i) => point(i, v || 0).join(",")).join(" ")}"></polygon>` +
-    values
-      .map((v, i) => {
-        const [x, y] = point(i, v || 0);
-        return `<circle class="dot" cx="${x}" cy="${y}" r="4" style="fill:var(--accent)"></circle>
-                <circle class="hit" data-tip="${id}:${i}" cx="${x}" cy="${y}" r="12"></circle>`;
-      })
-      .join("");
-
-  setTips(
-    id,
-    axes.map((label, i) => ({
-      title: label,
-      rows: [
-        {
-          label: S.normPercent,
-          value: values[i] == null ? "—" : `${fmt(values[i])}%`,
-          color: "--accent",
-        },
-      ],
-    })),
-  );
-
-  el.innerHTML = svg(w, h, grid + labels + shape);
-};
-
 /* --- Tip --- */
 
 const showTip = (target, x, y) => {
@@ -4796,17 +4731,13 @@ const renderStats = () => {
       ];
     }),
   );
-  if (microMode === "radar") {
-    renderRadar(
-      "micro-chart",
-      MICRO_KEYS.map((k) => S[k]),
-      MICRO_KEYS.map((k) => micro[k]),
-    );
-  } else if (!logged.length) {
+  if (!logged.length) {
     empty("micro-chart");
   } else {
+    const sorted = MICRO_KEYS.map((k) => ({ label: S[k], value: micro[k] }))
+      .sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
     $("micro-chart").innerHTML =
-      `<div class="h-list">${microBarsHtml(MICRO_KEYS.map((k) => ({ label: S[k], value: micro[k] })))}</div>`;
+      `<div class="h-list">${microBarsHtml(sorted)}</div>`;
   }
 };
 
@@ -4850,10 +4781,6 @@ onSegment($("trigger-x"), "x", (v) => {
 });
 onSegment($("trigger-y"), "y", (v) => {
   triggerY = v;
-  renderStats();
-});
-onSegment($("micro-mode"), "mode", (v) => {
-  microMode = v;
   renderStats();
 });
 
