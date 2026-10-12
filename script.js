@@ -67,7 +67,6 @@ const DEFAULT_SERVING = 100;
 const STEP_KCAL = 0.0005;
 
 const MEAL_TYPES = [SNACK, BREAKFAST, LUNCH, DINNER];
-const NORM_RATIO_HIGH = 1.1;
 const PHOTO_MAX_WIDTH = 1280;
 const PHOTO_QUALITY = 0.82;
 
@@ -1555,15 +1554,11 @@ const dayWeight = (key) =>
 /* --- Calendar --- */
 
 const getMarkHtml = (key) => {
-  if (!dayMeals(key).length) return "";
-  const kcal = daySum(key).kcal;
-  const ratio = kcal / person.goals.kcal;
+  const s = daySum(key);
+  if (!dayMeals(key).length || s.healthScore == null) return "";
+  const ratio = s.kcal / person.goals.kcal;
   const size = Math.min(64, 12 + 24 * ratio);
-  const color = ratio <= NORM_RATIO_HIGH ? "--green" : "--red";
-  return (
-    `<i style="width:${size}px;height:${size}px;background:var(${color})"></i>` +
-    `<small class="mono">${Math.round(kcal)}</small>`
-  );
+  return `<i style="width:${size}px;height:${size}px;background:${healthColor(s.healthScore)}"></i>`;
 };
 
 const addPageMonth = (delta) => {
