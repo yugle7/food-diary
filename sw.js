@@ -1,5 +1,5 @@
 const APP_PREFIX = "num-num-";
-const VERSION = "2026-10-12e"; // matches version in manifest.webmanifest
+const VERSION = "2026-10-15a"; // matches version in manifest.webmanifest
 const REFS_VERSION = "2"; // bumped only when foods.js changes
 
 const STATIC_CACHE = `${APP_PREFIX}static-${VERSION}`;
@@ -68,11 +68,25 @@ const cacheFirst = async (cacheName, request) => {
   return response;
 };
 
+// Navigation: network-first. When the HTML changes, refresh every static
+// asset together so HTML and JS never get out of sync.
 const networkFirst = async (request) => {
   const cache = await caches.open(STATIC_CACHE);
   try {
     const response = await fetch(request);
-    if (response.ok) await cache.put(scoped("index.html"), response.clone());
+    if (response.ok) {
+      const fresh = await response.clone().text();
+      const cached = await cache.match(scoped("index.html"));
+      if (!cached || (await cached.text()) !== fresh) {
+        await Promise.all(
+          STATIC_URLS.filter((path) => path !== "./").map(async (path) => {
+            const res = await fetch(scoped(path), { cache: "reload" });
+            if (res.ok) await cache.put(scoped(path), res.clone());
+          }),
+        );
+      }
+      await cache.put(scoped("index.html"), response.clone());
+    }
     return response;
   } catch {
     return (await cache.match(scoped("index.html"))) || Response.error();

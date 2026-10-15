@@ -27,8 +27,11 @@
     <div id="calendar"></div>
     <h3 id="chosen-day" class="accent center"></h3>
     <button id="day-summary" data-i18n-aria-label="dayDetails"></button>
-    <div id="day-logs"></div>
     <div id="day-meals"></div>
+
+    <button id="add-meal" class="fab-add" data-i18n-aria-label="addMeal">
+        <svg><use href="sprite.svg#plus"></use></svg>
+    </button>
 </section>
 
 <!-- ==========================================================================
@@ -210,7 +213,6 @@
     </div>
 
     <div class="card">
-        <h3 data-i18n="macros"></h3>
         <div class="chart" id="macros-chart"></div>
     </div>
 
@@ -330,14 +332,132 @@
 <section id="person-page" class="width-500 safe hidden">
     <br/>
 
-    <button id="person" data-i18n-aria-label="person">
-        <svg class="icon"><use href="sprite.svg#person"></use></svg>
-        <span class="row gap-10"></span>
-    </button>
+    <form id="profile" class="pad-20 col gap-15" novalidate autocomplete="off" onsubmit="return false">
+        <div class="row gap-15">
+            <div class="field grow">
+                <label class="label" for="birthdate" data-i18n="birthdate"></label>
+                <input class="input mono" id="birthdate" name="birthdate" type="text" inputmode="numeric"
+                       autocomplete="off" autocapitalize="off" placeholder="31.12.2000" spellcheck="false" maxlength="10">
+            </div>
+            <div class="field grow">
+                <label class="label" data-i18n="sex"></label>
+                <div class="segment" id="sex" style="--n:2;--i:0">
+                    <button type="button" data-sex="female" class="active" data-i18n="female"></button>
+                    <button type="button" data-sex="male" data-i18n="male"></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row gap-15">
+            <div class="field grow">
+                <label class="label" for="height" data-i18n="height"></label>
+                <div class="unit-field">
+                    <input class="input mono" id="height" type="text" inputmode="numeric" placeholder="175" maxlength="3">
+                    <span class="unit" data-i18n="cm"></span>
+                </div>
+            </div>
+            <div class="field grow">
+                <label class="label" for="weight" data-i18n="weight"></label>
+                <div class="unit-field">
+                    <input class="input mono" id="weight" type="text" inputmode="decimal" placeholder="70" maxlength="5">
+                    <span class="unit" data-i18n="kg"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="row gap-10" for="activity">
+                <span data-i18n="activity"></span> <span>—</span> <span id="activity-level"></span>
+            </label>
+            <input type="range" id="activity" min="1" max="2" step="0.025" value="1.375">
+        </div>
+
+        <div class="field">
+            <label class="label" data-i18n="goal"></label>
+            <div class="segment" id="goal" style="--n:3;--i:1">
+                <button type="button" data-goal="lose" data-i18n="lose"></button>
+                <button type="button" data-goal="maintain" class="active" data-i18n="maintain"></button>
+                <button type="button" data-goal="gain" data-i18n="gain"></button>
+            </div>
+        </div>
+
+        <div class="row gap-15">
+            <div class="field grow">
+                <label class="label" for="target-sleep" data-i18n="sleep"></label>
+                <div class="unit-field">
+                    <input class="input mono" id="target-sleep" type="text" inputmode="decimal" maxlength="4">
+                    <span class="unit" data-i18n="h"></span>
+                </div>
+            </div>
+            <div class="field grow">
+                <label class="label" for="target-steps" data-i18n="steps"></label>
+                <div class="unit-field">
+                    <input class="input mono" id="target-steps" type="text" inputmode="numeric" maxlength="6">
+                </div>
+            </div>
+        </div>
+
+        <div class="row gap-15">
+            <div class="field grow">
+                <label class="label" for="target-water" data-i18n="water"></label>
+                <div class="unit-field">
+                    <input class="input mono" id="target-water" type="text" inputmode="decimal" maxlength="4">
+                    <span class="unit" data-i18n="l"></span>
+                </div>
+            </div>
+            <div class="field grow">
+                <label class="label" for="target-weight" data-i18n="weight"></label>
+                <div class="unit-field">
+                    <input class="input mono" id="target-weight" type="text" inputmode="decimal" maxlength="5">
+                    <span class="unit" data-i18n="kg"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" data-i18n="macros"></label>
+            <div class="row gap-15">
+                <div class="field grow">
+                    <label class="label" for="macro-protein" data-i18n="protein"></label>
+                    <div class="unit-field">
+                        <input class="input mono" id="macro-protein" type="text" inputmode="numeric" maxlength="3">
+                        <span class="unit">%</span>
+                    </div>
+                </div>
+                <div class="field grow">
+                    <label class="label" for="macro-fat" data-i18n="fat"></label>
+                    <div class="unit-field">
+                        <input class="input mono" id="macro-fat" type="text" inputmode="numeric" maxlength="3">
+                        <span class="unit">%</span>
+                    </div>
+                </div>
+                <div class="field grow">
+                    <label class="label" for="macro-carbs" data-i18n="carbs"></label>
+                    <div class="unit-field">
+                        <input class="input mono" id="macro-carbs" type="text" inputmode="numeric" maxlength="3">
+                        <span class="unit">%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-4">
+            <label class="field"><span class="label" data-i18n="kcal"></span><input id="goal-kcal" class="input mono" inputmode="numeric"></label>
+            <label class="field"><span class="label" data-i18n="protein"></span><input id="goal-protein" class="input mono" inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="fat"></span><input id="goal-fat" class="input mono" inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="carbs"></span><input id="goal-carbs" class="input mono" inputmode="decimal"></label>
+        </div>
+        <div class="grid-4">
+            <label class="field"><span class="label" data-i18n="fiber"></span><input id="goal-fiber" class="input mono" inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="sugar"></span><input id="goal-sugar" class="input mono" inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="salt"></span><input id="goal-salt" class="input mono" inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="satFat"></span><input id="goal-satfat" class="input mono" inputmode="decimal"></label>
+        </div>
+        <div class="small help" data-i18n="manualTargetsHint"></div>
+    </form>
 
     <div class="pad-20">
-        <h3 data-i18n="goals"></h3>
-        <div id="goals" class="col gap-8 small"></div>
+        <div id="log-rings" class="row gap-10"></div>
     </div>
 </section>
 
@@ -477,67 +597,6 @@
     </footer>
 </div>
 
-<div id="person-picker" class="sheet" role="dialog" aria-modal="true" data-i18n-aria-label="person">
-    <form id="profile" novalidate autocomplete="off" onsubmit="return false">
-        <div class="row gap-15">
-            <div class="field grow">
-                <label class="label" for="birthdate" data-i18n="birthdate"></label>
-                <input class="input mono" id="birthdate" name="birthdate" type="text" inputmode="numeric"
-                       autocomplete="off" autocapitalize="off" placeholder="31.12.2000" spellcheck="false" maxlength="10">
-            </div>
-            <div class="field grow">
-                <label class="label" data-i18n="sex"></label>
-                <div class="segment" id="sex" style="--n:2;--i:0">
-                    <button type="button" data-sex="female" class="active" data-i18n="female"></button>
-                    <button type="button" data-sex="male" data-i18n="male"></button>
-                </div>
-            </div>
-        </div>
-
-        <div class="row gap-15">
-            <div class="field grow">
-                <label class="label" for="height" data-i18n="height"></label>
-                <div class="unit-field">
-                    <input class="input mono" id="height" type="text" inputmode="numeric" placeholder="175" maxlength="3">
-                    <span class="unit" data-i18n="cm"></span>
-                </div>
-            </div>
-            <div class="field grow">
-                <label class="label" for="weight" data-i18n="weight"></label>
-                <div class="unit-field">
-                    <input class="input mono" id="weight" type="text" inputmode="decimal" placeholder="70" maxlength="5">
-                    <span class="unit" data-i18n="kg"></span>
-                </div>
-            </div>
-        </div>
-
-        <div class="field">
-            <label class="label" data-i18n="activity"></label>
-            <div class="segment" id="activity" style="--n:5;--i:1">
-                <button type="button" data-activity="1.2" data-i18n="activityLevels.0"></button>
-                <button type="button" data-activity="1.375" class="active" data-i18n="activityLevels.1"></button>
-                <button type="button" data-activity="1.55" data-i18n="activityLevels.2"></button>
-                <button type="button" data-activity="1.725" data-i18n="activityLevels.3"></button>
-                <button type="button" data-activity="1.9" data-i18n="activityLevels.4"></button>
-            </div>
-        </div>
-
-        <div class="field">
-            <label class="label" data-i18n="goal"></label>
-            <div class="segment" id="goal" style="--n:3;--i:1">
-                <button type="button" data-goal="lose" data-i18n="lose"></button>
-                <button type="button" data-goal="maintain" class="active" data-i18n="maintain"></button>
-                <button type="button" data-goal="gain" data-i18n="gain"></button>
-            </div>
-        </div>
-    </form>
-
-    <footer>
-        <button id="close-person" class="right" data-i18n="cancel"></button>
-        <button id="apply-person" class="accent">OK</button>
-    </footer>
-</div>
-
 <div id="stats-sheet" class="sheet tall" role="dialog" aria-modal="true" data-i18n-aria-label="dayDetails">
     <h3 id="stats-sheet-title" class="center"></h3>
     <div class="sheet-scroll col gap-20">
@@ -559,7 +618,6 @@
         <input id="log-value" class="mono" inputmode="decimal" autocomplete="off" data-i18n-aria-label="value">
         <span id="log-unit"></span>
     </div>
-    <div id="log-quick" class="chips center"></div>
     <footer>
         <button id="close-log" class="right" data-i18n="cancel"></button>
         <button id="apply-log" class="accent">OK</button>
@@ -574,10 +632,6 @@
     <div id="nav">
         <button id="nav-diary" data-page="diary" class="pad-10 active" data-i18n-aria-label="diary" aria-current="page">
             <svg><use href="sprite.svg#diary"></use></svg>
-        </button>
-
-        <button id="add-meal" data-page="meal" class="pad-10" data-i18n-aria-label="addMeal">
-            <svg><use href="sprite.svg#plus"></use></svg>
         </button>
 
         <button id="nav-stats" data-page="stats" class="pad-10" data-i18n-aria-label="stats">
