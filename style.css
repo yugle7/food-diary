@@ -748,27 +748,18 @@ textarea.input {
   box-shadow: none;
 }
 
-/* Кнопка добавления приема пищи на странице дневника */
-.fab-add {
-  position: fixed;
-  right: 14px;
-  bottom: calc(84px + env(safe-area-inset-bottom));
-  z-index: 1;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--bg);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+/* Дата и кнопка добавления приема пищи */
+.chosen-day-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin: 0 auto;
 }
 
-.fab-add svg {
-  width: 28px;
-  height: 28px;
-  stroke: var(--bg);
-  stroke-width: 3;
+.chosen-day-row .icon-button svg {
+  stroke: var(--accent);
 }
 
 .fab-close {
@@ -993,7 +984,6 @@ nav > div > button {
   padding: 12px 20px;
   text-align: left;
   line-height: 1.3;
-  border-top: 1px solid var(--line);
 }
 
 .meal .row svg {

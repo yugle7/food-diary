@@ -1483,7 +1483,6 @@ const renderPage = (name, withLink = true) => {
         renderStats();
     } else if (name === "person") {
         renderPerson();
-        renderLogRings();
     }
 };
 
@@ -1650,8 +1649,8 @@ const getCalendarPage = (delta = 0) => {
     const dayHtml = (n) => {
         const d = getDate(new Date(y, m, n));
         const s = getSumMeals(d);
-        const c = s ? '--bg' : d > t ? '--help' : '--text';
-        return `<button><span style="color: var(${c})" class="${d === c ? "big" : ""}">${n}</span>${getMarkHtml(s)}</button>`;
+        const color = s ? "--bg" : d > t ? "--help" : "--text";
+        return `<button><span style="color: var(${color})" class="${d === c ? "big" : ""}">${n}</span>${getMarkHtml(s)}</button>`;
     };
 
     let days =
@@ -1772,29 +1771,6 @@ calendar.addEventListener("pointercancel", stopDragging);
 
 /* --- Summary, logs, meal list --- */
 
-const renderSummary = () => {
-    const d = getDate(date);
-    const s = getSumMeals(d);
-    if (!s) {
-        daySummary.innerHTML = '';
-        return;
-    }
-    const g = person.goals;
-    const ratio = s.kcal / g.kcal;
-    const water = dayWater(d);
-    const pair = (label, v, goal) => `${label} ${fmt(v)}/${fmt(goal)}`;
-
-    daySummary.innerHTML = `
-        <div class="kcal-bar ${ratio > 1 ? "over" : ""}" style="--fill:${Math.min(1, ratio)}">
-            <div class="bar"></div>
-            <div class="labels mono">${fmt(s.kcal)} / ${fmt(g.kcal)} ${S.kcalUnit}</div>
-        </div>
-        <div class="macros small mono help">
-            ${pair(S.protein[0], s.protein, g.protein)} · ${pair(S.fat[0], s.fat, g.fat)} · ${pair(S.carbs[0], s.carbs, g.carbs)} ·
-            ${S.water[0]} ${fmt(water / 1000, 1)}/${fmt(g.water / 1000, 1)} ${S.l}
-        </div>`;
-};
-
 const mealHtml = (m) => {
     const s = sumMeals(m.items);
     const names = m.items.map((i) => clean(i.name)).join(" · ");
@@ -1827,7 +1803,6 @@ const renderDayMeals = () => {
 
 const renderDay = () => {
     chosenDay.textContent = getDateText(date);
-    renderSummary();
     renderDayMeals();
 };
 
@@ -1836,6 +1811,8 @@ const renderDiary = () => {
     calendarDate.setDate(1);
     renderPageCalendar();
     renderDay();
+    renderLogRings();
+    renderDayRings();
 };
 
 dayMealsList.onclick = (e) => {
@@ -1845,7 +1822,7 @@ dayMealsList.onclick = (e) => {
     openMeal(structuredClone(meals.find((m) => m.created === created)), false);
 };
 
-daySummary.onclick = () => openStatsSheet();
+// daySummary.onclick = () => openStatsSheet();
 
 // ==========================================================================
 // 15. DAY LOG (#log-sheet)
@@ -1952,7 +1929,6 @@ applyLog.onclick = () => {
 
     closeSheet();
     if (page === pages.person) {
-        renderLogRings();
         renderPerson();
     } else renderDiary();
 };
@@ -1974,7 +1950,7 @@ const ringHtml = (value, goal, color, label, unit) => {
                 style="stroke:var(${ratio > 1.1 ? "--red" : color});stroke-dasharray:${RING_LENGTH * Math.min(1, ratio)} ${RING_LENGTH}"></circle>
         </svg>
         <div class="ring-value mono">${fmt(value)}</div>
-        <div class="small help center">${label}<br>${fmt(goal)} ${unit}</div>
+        <div class="small help center">${label}</div>
     </div>`;
 };
 
@@ -1999,17 +1975,12 @@ const microBarsHtml = (entries) =>
         )
         .join("");
 
+
+
 const openStatsSheet = () => {
     const key = getDate(date);
     const s = getSumMeals(key);
-    const g = person.goals;
     statsSheetTitle.textContent = getDateText(date);
-
-    dayRings.innerHTML =
-        ringHtml(s.kcal, g.kcal, "--accent", S.kcal, S.kcalUnit) +
-        ringHtml(s.protein, g.protein, "--c1", S.protein, S.g) +
-        ringHtml(s.fat, g.fat, "--c2", S.fat, S.g) +
-        ringHtml(s.carbs, g.carbs, "--c3", S.carbs, S.g);
 
     dayMicro.innerHTML = microBarsHtml(microEntries(s.micro));
 
@@ -2274,7 +2245,7 @@ const dotColor = (item) => {
 };
 
 const macrosText = (n, f) =>
-    `${S.protein[0]} ${fmt(n.protein * f)} · ${S.fat[0]} ${fmt(n.fat * f)} · ${S.carbs[0]} ${fmt(n.carbs * f)}`;
+    `${fmt(n.kcal)} ${S.kcalUnit} · ${S.protein[0]} ${fmt(n.protein * f)} · ${S.fat[0]} ${fmt(n.fat * f)} · ${S.carbs[0]} ${fmt(n.carbs * f)}`;
 
 const itemHtml = (item, i) => {
     const n = item.nutrition;
@@ -2465,11 +2436,7 @@ const searchFoods = (query) => {
     const pool = searchPool();
     if (!query.trim()) {
         return pool
-            .sort(
-                (a, b) =>
-                    favorites.includes(b.id) - favorites.includes(a.id) ||
-                    foodName(a).localeCompare(foodName(b), S.locale),
-            )
+            .sort((a, b) => foodName(a).localeCompare(foodName(b), S.locale))
             .slice(0, 50);
     }
     return rankFoods(query, pool)
@@ -3001,7 +2968,10 @@ applyWhen.onclick = applyWhenPicker;
 
 let dish = null;
 
-const nextFoodId = () => Math.max(0, ...foods.map((f) => f.id)) + 1;
+const CUSTOM_ID_START = 1000000;
+
+const nextFoodId = () =>
+    Math.max(CUSTOM_ID_START - 1, ...foods.map((f) => f.id)) + 1;
 
 const DISH_LIMITS = {
     kcal: [900, 1],
@@ -3160,6 +3130,7 @@ const readDish = () => {
             valid: !!name && dish.ingredients.length > 0 && r.grams > 0,
             nutrition: r.nutrition,
             micro: r.micro,
+            grams: r.grams,
             servingGrams: serving || out || DEFAULT_SERVING,
             yieldGrams: out || null,
             recipe: r,
@@ -3197,9 +3168,8 @@ const updateDish = () => {
         Object.entries(dishInputs).forEach(([k, input]) => {
             input.value = fmt(r.nutrition[k], DISH_LIMITS[k][1]);
         });
-        const t = r.recipe.totals;
         ingredientsTotal.textContent = r.recipe.grams
-            ? `${fmt(r.recipe.grams)} ${S.g} · ${fmt(t.kcal)} ${S.kcalUnit} · ${macrosText(t, 1)}`
+            ? `${fmt(r.grams)} ${S.g} · ${macrosText(r.nutrition, 1)}`
             : "";
         renderIngredientKcal();
     }
@@ -3377,7 +3347,7 @@ const logRingHtml = ({kind, fill, goal, text, label, unit, color, ccw}) => {
                 transform="rotate(-90 32 32)${ccw ? RING_CCW : ""}"></circle>
         </svg>
         <div class="ring-value mono">${text}</div>
-        <div class="small help center">${label}<br>${fmt(goal, 1)} ${unit}</div>
+        <div class="small help center">${label}</div>
     </button>`;
 };
 
@@ -3440,6 +3410,18 @@ const renderLogRings = () => {
         .map(logRingHtml)
         .join("");
 };
+
+const renderDayRings = () => {
+    const d = getDate(date);
+    const s = getSumMeals(d);
+    const g = person.goals;
+
+    dayRings.innerHTML =
+        ringHtml(s.kcal, g.kcal, "--accent", S.kcal, S.kcalUnit) +
+        ringHtml(s.protein, g.protein, "--c1", S.protein, S.g) +
+        ringHtml(s.fat, g.fat, "--c2", S.fat, S.g) +
+        ringHtml(s.carbs, g.carbs, "--c3", S.carbs, S.g);
+}
 
 logRings.onclick = (e) => {
     const ring = e.target.closest("[data-kind]");
@@ -3546,7 +3528,6 @@ const applyPersonForm = () => {
 
     savePerson();
     renderPerson();
-    renderLogRings();
 };
 
 // Сохраняем все поля разом: простое и предсказуемое поведение

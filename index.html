@@ -25,13 +25,15 @@
 
 <section id="diary-page" class="width-500 safe">
     <div id="calendar"></div>
-    <h3 id="chosen-day" class="accent center"></h3>
-    <button id="day-summary" data-i18n-aria-label="dayDetails"></button>
+    <div class="chosen-day-row">
+        <h3 id="chosen-day" class="accent"></h3>
+        <button id="add-meal" class="icon-button" data-i18n-aria-label="addMeal">
+            <svg><use href="sprite.svg#plus"></use></svg>
+        </button>
+    </div>
+    <div id="day-rings" class="row gap-10 pad-20"></div>
+    <div id="log-rings" class="row gap-10 pad-20"></div>
     <div id="day-meals"></div>
-
-    <button id="add-meal" class="fab-add" data-i18n-aria-label="addMeal">
-        <svg><use href="sprite.svg#plus"></use></svg>
-    </button>
 </section>
 
 <!-- ==========================================================================
@@ -455,10 +457,6 @@
         </div>
         <div class="small help" data-i18n="manualTargetsHint"></div>
     </form>
-
-    <div class="pad-20">
-        <div id="log-rings" class="row gap-10"></div>
-    </div>
 </section>
 
 <section id="settings-page" class="width-500 safe hidden">
