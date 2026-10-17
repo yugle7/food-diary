@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no, interactive-widget=resizes-content"/>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, shrink-to-fit=no, interactive-widget=resizes-content"/>
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="theme-color" content="#f7f6f4" media="(prefers-color-scheme: light)"/>
     <meta name="theme-color" content="#2a2a2a" media="(prefers-color-scheme: dark)"/>
@@ -25,15 +26,11 @@
 
 <section id="diary-page" class="width-500 safe">
     <div id="calendar"></div>
-    <div class="chosen-day-row">
-        <h3 id="chosen-day" class="accent"></h3>
-        <button id="add-meal" class="icon-button" data-i18n-aria-label="addMeal">
-            <svg><use href="sprite.svg#plus"></use></svg>
-        </button>
-    </div>
+    <h3 id="chosen-day" class="accent center"></h3>
     <div id="day-rings" class="row gap-10 pad-20"></div>
     <div id="log-rings" class="row gap-10 pad-20"></div>
     <div id="day-meals"></div>
+    <div id="day-micro" class="h-list pad-20"></div>
 </section>
 
 <!-- ==========================================================================
@@ -52,23 +49,34 @@
             <div class="input-row">
                 <div class="text-field">
                     <textarea id="meal-text" class="input" rows="1" maxlength="200" autocomplete="off"
-                              data-i18n-placeholder="parsePlaceholder" data-i18n-aria-label="parsePlaceholder"></textarea>
+                              data-i18n-placeholder="parsePlaceholder"
+                              data-i18n-aria-label="parsePlaceholder"></textarea>
                     <button id="clear-text" class="clear hidden" data-i18n-aria-label="clear">
-                        <svg class="tool"><use href="sprite.svg#close"></use></svg>
+                        <svg class="tool">
+                            <use href="sprite.svg#close"></use>
+                        </svg>
                     </button>
                 </div>
                 <div class="input-actions">
                     <button id="icon-photo" class="icon-button needs-photos" data-i18n-aria-label="photo">
-                        <svg class="tool"><use href="sprite.svg#camera"></use></svg>
+                        <svg class="tool">
+                            <use href="sprite.svg#camera"></use>
+                        </svg>
                     </button>
                     <button id="icon-voice" class="icon-button" data-i18n-aria-label="voice">
-                        <svg class="tool"><use href="sprite.svg#mic"></use></svg>
+                        <svg class="tool">
+                            <use href="sprite.svg#mic"></use>
+                        </svg>
                     </button>
                     <button id="icon-search" class="icon-button" data-i18n-aria-label="search">
-                        <svg class="tool"><use href="sprite.svg#search"></use></svg>
+                        <svg class="tool">
+                            <use href="sprite.svg#search"></use>
+                        </svg>
                     </button>
                     <button id="icon-star" class="icon-button" data-i18n-aria-label="favorites">
-                        <svg class="tool"><use href="sprite.svg#star"></use></svg>
+                        <svg class="tool">
+                            <use href="sprite.svg#star"></use>
+                        </svg>
                     </button>
                 </div>
                 <input id="photo-input" type="file" accept="image/*" capture="environment" hidden>
@@ -97,10 +105,14 @@
     </div>
 
     <button id="confirm" class="fab-round" disabled aria-label="">
-        <svg><use href="sprite.svg#save"></use></svg>
+        <svg>
+            <use href="sprite.svg#save"></use>
+        </svg>
     </button>
     <button id="cancel" class="fab-close" data-i18n-aria-label="close">
-        <svg><use href="sprite.svg#cancel"></use></svg>
+        <svg>
+            <use href="sprite.svg#cancel"></use>
+        </svg>
     </button>
 </section>
 
@@ -137,21 +149,40 @@
             </div>
 
             <div class="grid-4">
-                <label class="field"><span class="label" data-i18n="kcal"></span><input id="dish-kcal" class="input mono" inputmode="decimal"></label>
-                <label class="field"><span class="label" data-i18n="protein"></span><input id="dish-protein" class="input mono" inputmode="decimal"></label>
-                <label class="field"><span class="label" data-i18n="fat"></span><input id="dish-fat" class="input mono" inputmode="decimal"></label>
-                <label class="field"><span class="label" data-i18n="carbs"></span><input id="dish-carbs" class="input mono" inputmode="decimal"></label>
+                <label class="field"><span class="label" data-i18n="kcal"></span><input id="dish-kcal"
+                                                                                        class="input mono"
+                                                                                        inputmode="decimal"></label>
+                <label class="field"><span class="label" data-i18n="protein"></span><input id="dish-protein"
+                                                                                           class="input mono"
+                                                                                           inputmode="decimal"></label>
+                <label class="field"><span class="label" data-i18n="fat"></span><input id="dish-fat" class="input mono"
+                                                                                       inputmode="decimal"></label>
+                <label class="field"><span class="label" data-i18n="carbs"></span><input id="dish-carbs"
+                                                                                         class="input mono"
+                                                                                         inputmode="decimal"></label>
             </div>
 
             <button id="toggle-micro" class="left accent small"></button>
             <div id="dish-micro" class="col gap-10 hidden">
                 <div class="grid-4">
-                    <label class="field"><span class="label" data-i18n="fiber"></span><input id="dish-fiber" class="input mono" inputmode="decimal"></label>
-                    <label class="field"><span class="label" data-i18n="sugar"></span><input id="dish-sugar" class="input mono" inputmode="decimal"></label>
-                    <label class="field"><span class="label" data-i18n="freeSugar"></span><input id="dish-freeSugar" class="input mono" inputmode="decimal"></label>
-                    <label class="field"><span class="label" data-i18n="salt"></span><input id="dish-salt" class="input mono" inputmode="decimal"></label>
-                    <label class="field"><span class="label" data-i18n="satFat"></span><input id="dish-satFat" class="input mono" inputmode="decimal"></label>
-                    <label class="field"><span class="label" data-i18n="transFat"></span><input id="dish-transFat" class="input mono" inputmode="decimal"></label>
+                    <label class="field"><span class="label" data-i18n="fiber"></span><input id="dish-fiber"
+                                                                                             class="input mono"
+                                                                                             inputmode="decimal"></label>
+                    <label class="field"><span class="label" data-i18n="sugar"></span><input id="dish-sugar"
+                                                                                             class="input mono"
+                                                                                             inputmode="decimal"></label>
+                    <label class="field"><span class="label" data-i18n="freeSugar"></span><input id="dish-freeSugar"
+                                                                                                 class="input mono"
+                                                                                                 inputmode="decimal"></label>
+                    <label class="field"><span class="label" data-i18n="salt"></span><input id="dish-salt"
+                                                                                            class="input mono"
+                                                                                            inputmode="decimal"></label>
+                    <label class="field"><span class="label" data-i18n="satFat"></span><input id="dish-satFat"
+                                                                                              class="input mono"
+                                                                                              inputmode="decimal"></label>
+                    <label class="field"><span class="label" data-i18n="transFat"></span><input id="dish-transFat"
+                                                                                                class="input mono"
+                                                                                                inputmode="decimal"></label>
                 </div>
                 <div id="dish-micro-source" class="small help"></div>
                 <div class="small help" data-i18n="microPerServing"></div>
@@ -181,7 +212,9 @@
 
     <button id="dish-save" class="fab-primary" data-i18n="save" disabled></button>
     <button id="dish-cancel" class="fab-close" data-i18n-aria-label="cancel">
-        <svg><use href="sprite.svg#cancel"></use></svg>
+        <svg>
+            <use href="sprite.svg#cancel"></use>
+        </svg>
     </button>
 </section>
 
@@ -199,11 +232,15 @@
 
     <div id="range">
         <button type="button" data-add="-1" data-i18n-aria-label="previousPeriod">
-            <svg><use href="sprite.svg#prev"></use></svg>
+            <svg>
+                <use href="sprite.svg#prev"></use>
+            </svg>
         </button>
         <span id="range-label"></span>
         <button type="button" data-add="1" data-i18n-aria-label="nextPeriod">
-            <svg><use href="sprite.svg#next"></use></svg>
+            <svg>
+                <use href="sprite.svg#next"></use>
+            </svg>
         </button>
     </div>
 
@@ -339,7 +376,8 @@
             <div class="field grow">
                 <label class="label" for="birthdate" data-i18n="birthdate"></label>
                 <input class="input mono" id="birthdate" name="birthdate" type="text" inputmode="numeric"
-                       autocomplete="off" autocapitalize="off" placeholder="31.12.2000" spellcheck="false" maxlength="10">
+                       autocomplete="off" autocapitalize="off" placeholder="31.12.2000" spellcheck="false"
+                       maxlength="10">
             </div>
             <div class="field grow">
                 <label class="label" data-i18n="sex"></label>
@@ -354,14 +392,16 @@
             <div class="field grow">
                 <label class="label" for="height" data-i18n="height"></label>
                 <div class="unit-field">
-                    <input class="input mono" id="height" type="text" inputmode="numeric" placeholder="175" maxlength="3">
+                    <input class="input mono" id="height" type="text" inputmode="numeric" placeholder="175"
+                           maxlength="3">
                     <span class="unit" data-i18n="cm"></span>
                 </div>
             </div>
             <div class="field grow">
                 <label class="label" for="weight" data-i18n="weight"></label>
                 <div class="unit-field">
-                    <input class="input mono" id="weight" type="text" inputmode="decimal" placeholder="70" maxlength="5">
+                    <input class="input mono" id="weight" type="text" inputmode="decimal" placeholder="70"
+                           maxlength="5">
                     <span class="unit" data-i18n="kg"></span>
                 </div>
             </div>
@@ -444,16 +484,26 @@
         </div>
 
         <div class="grid-4">
-            <label class="field"><span class="label" data-i18n="kcal"></span><input id="goal-kcal" class="input mono" inputmode="numeric"></label>
-            <label class="field"><span class="label" data-i18n="protein"></span><input id="goal-protein" class="input mono" inputmode="decimal"></label>
-            <label class="field"><span class="label" data-i18n="fat"></span><input id="goal-fat" class="input mono" inputmode="decimal"></label>
-            <label class="field"><span class="label" data-i18n="carbs"></span><input id="goal-carbs" class="input mono" inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="kcal"></span><input id="goal-kcal" class="input mono"
+                                                                                    inputmode="numeric"></label>
+            <label class="field"><span class="label" data-i18n="protein"></span><input id="goal-protein"
+                                                                                       class="input mono"
+                                                                                       inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="fat"></span><input id="goal-fat" class="input mono"
+                                                                                   inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="carbs"></span><input id="goal-carbs" class="input mono"
+                                                                                     inputmode="decimal"></label>
         </div>
         <div class="grid-4">
-            <label class="field"><span class="label" data-i18n="fiber"></span><input id="goal-fiber" class="input mono" inputmode="decimal"></label>
-            <label class="field"><span class="label" data-i18n="sugar"></span><input id="goal-sugar" class="input mono" inputmode="decimal"></label>
-            <label class="field"><span class="label" data-i18n="salt"></span><input id="goal-salt" class="input mono" inputmode="decimal"></label>
-            <label class="field"><span class="label" data-i18n="satFat"></span><input id="goal-satfat" class="input mono" inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="fiber"></span><input id="goal-fiber" class="input mono"
+                                                                                     inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="sugar"></span><input id="goal-sugar" class="input mono"
+                                                                                     inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="salt"></span><input id="goal-salt" class="input mono"
+                                                                                    inputmode="decimal"></label>
+            <label class="field"><span class="label" data-i18n="satFat"></span><input id="goal-satFat"
+                                                                                      class="input mono"
+                                                                                      inputmode="decimal"></label>
         </div>
         <div class="small help" data-i18n="manualTargetsHint"></div>
     </form>
@@ -466,33 +516,45 @@
     </div>
 
     <a href="https://pay.cloudtips.ru/p/9e3a23d6" target="_blank" rel="noopener">
-        <svg class="icon"><use href="sprite.svg#heart"></use></svg>
+        <svg class="icon">
+            <use href="sprite.svg#heart"></use>
+        </svg>
         <span data-i18n="support"></span>
     </a>
 
     <a href="mailto:yuzhakov.gleb@gmail.com?subject=FoodDiary">
-        <svg class="icon"><use href="sprite.svg#chat"></use></svg>
+        <svg class="icon">
+            <use href="sprite.svg#chat"></use>
+        </svg>
         <span data-i18n="mailTo"></span>
     </a>
 
     <a href="privacy.html" target="_blank">
-        <svg class="icon"><use href="sprite.svg#shield"></use></svg>
+        <svg class="icon">
+            <use href="sprite.svg#shield"></use>
+        </svg>
         <span data-i18n="privacy"></span>
     </a>
 
     <button id="export">
-        <svg class="icon"><use href="sprite.svg#download"></use></svg>
+        <svg class="icon">
+            <use href="sprite.svg#download"></use>
+        </svg>
         <span data-i18n="exportData"></span>
     </button>
 
     <button id="import">
-        <svg class="icon"><use href="sprite.svg#upload"></use></svg>
+        <svg class="icon">
+            <use href="sprite.svg#upload"></use>
+        </svg>
         <span data-i18n="importData"></span>
     </button>
     <input id="import-input" type="file" accept="application/json,.json" hidden>
 
     <button id="reset">
-        <svg class="icon"><use href="sprite.svg#reset"></use></svg>
+        <svg class="icon">
+            <use href="sprite.svg#reset"></use>
+        </svg>
         <span data-i18n="reset"></span>
     </button>
 </section>
@@ -508,7 +570,9 @@
         <input id="search-input" class="input" type="text" autocomplete="off" enterkeyhint="search"
                data-i18n-placeholder="searchPlaceholder" data-i18n-aria-label="search">
         <button id="search-clear" class="clear" data-i18n-aria-label="clear">
-            <svg class="tool"><use href="sprite.svg#close"></use></svg>
+            <svg class="tool">
+                <use href="sprite.svg#close"></use>
+            </svg>
         </button>
     </div>
     <div id="search-tabs" class="chips scroll-x"></div>
@@ -583,11 +647,15 @@
 
     <footer>
         <button id="when-prev" data-i18n-aria-label="previous">
-            <svg><use href="sprite.svg#prev"></use></svg>
+            <svg>
+                <use href="sprite.svg#prev"></use>
+            </svg>
         </button>
 
         <button id="when-next" data-i18n-aria-label="next">
-            <svg><use href="sprite.svg#next"></use></svg>
+            <svg>
+                <use href="sprite.svg#next"></use>
+            </svg>
         </button>
 
         <button id="close-when" class="right" data-i18n="cancel"></button>
@@ -595,20 +663,6 @@
     </footer>
 </div>
 
-<div id="stats-sheet" class="sheet tall" role="dialog" aria-modal="true" data-i18n-aria-label="dayDetails">
-    <h3 id="stats-sheet-title" class="center"></h3>
-    <div class="sheet-scroll col gap-20">
-        <div id="day-rings"></div>
-        <div>
-            <h3 data-i18n="micronutrients"></h3>
-            <div id="day-micro" class="h-list"></div>
-        </div>
-        <div>
-            <h3 data-i18n="mealsTitle"></h3>
-            <div id="day-meal-shares" class="col gap-8"></div>
-        </div>
-    </div>
-</div>
 
 <div id="log-sheet" class="sheet" role="dialog" aria-modal="true">
     <h3 id="log-title" class="center"></h3>
@@ -617,6 +671,8 @@
         <span id="log-unit"></span>
     </div>
     <footer>
+        <button id="log-minus" class="left">−</button>
+        <button id="log-plus" class="left">+</button>
         <button id="close-log" class="right" data-i18n="cancel"></button>
         <button id="apply-log" class="accent">OK</button>
     </footer>
@@ -629,19 +685,33 @@
 <nav id="nav-bar" data-i18n-aria-label="mainNavigation">
     <div id="nav">
         <button id="nav-diary" data-page="diary" class="pad-10 active" data-i18n-aria-label="diary" aria-current="page">
-            <svg><use href="sprite.svg#diary"></use></svg>
+            <svg>
+                <use href="sprite.svg#diary"></use>
+            </svg>
+        </button>
+
+        <button id="add-meal" class="pad-10" data-i18n-aria-label="addMeal">
+            <svg>
+                <use href="sprite.svg#plus"></use>
+            </svg>
         </button>
 
         <button id="nav-stats" data-page="stats" class="pad-10" data-i18n-aria-label="stats">
-            <svg><use href="sprite.svg#stats"></use></svg>
+            <svg>
+                <use href="sprite.svg#stats"></use>
+            </svg>
         </button>
 
         <button id="nav-person" data-page="person" class="pad-10" data-i18n-aria-label="person">
-            <svg><use href="sprite.svg#person"></use></svg>
+            <svg>
+                <use href="sprite.svg#person"></use>
+            </svg>
         </button>
 
         <button id="nav-settings" data-page="settings" class="pad-10" data-i18n-aria-label="settings">
-            <svg><use href="sprite.svg#settings"></use></svg>
+            <svg>
+                <use href="sprite.svg#settings"></use>
+            </svg>
         </button>
     </div>
 </nav>

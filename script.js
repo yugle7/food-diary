@@ -88,21 +88,25 @@ const LOGS = {
         icon: "droplet",
         max: 10000,
         decimals: 0,
+        step: 200,
     },
     sleep: {
         icon: "moon",
         max: 24,
         decimals: 1,
+        step: 0.5,
     },
     steps: {
         icon: "steps",
         max: 100000,
         decimals: 0,
+        step: 500,
     },
     weight: {
         icon: "scale",
         max: 500,
         decimals: 1,
+        step: 0.1,
     },
 };
 
@@ -207,7 +211,7 @@ const weekdayIndex = (d) => (new Date(d).getDay() + 6) % 7;
 
 const round = (x, d = 0) => Math.round(x * 10 ** d) / 10 ** d;
 
-const fmt = (x, d = 0) => (x ? String(round(x, d)).replace(".", ",") : "—");
+const fmt = (x, d = 0) => (x ? String(round(x, d)).replace(".", ",") : "0");
 
 const clean = (s) =>
     String(s)
@@ -948,7 +952,16 @@ const macroInputs = {
     fat: $("macro-fat"),
     carbs: $("macro-carbs"),
 };
-const GOAL_KEYS = ["kcal", "protein", "fat", "carbs", "fiber", "sugar", "salt", "satFat"];
+const GOAL_KEYS = [
+    "kcal",
+    "protein",
+    "fat",
+    "carbs",
+    "fiber",
+    "sugar",
+    "salt",
+    "satFat",
+];
 const goalInputs = {
     kcal: $("goal-kcal"),
     protein: $("goal-protein"),
@@ -957,7 +970,7 @@ const goalInputs = {
     fiber: $("goal-fiber"),
     sugar: $("goal-sugar"),
     salt: $("goal-salt"),
-    satfat: $("goal-satfat"),
+    satFat: $("goal-satFat"),
 };
 const exportButton = $("export");
 const importButton = $("import");
@@ -965,11 +978,8 @@ const importInput = $("import-input");
 const resetButton = $("reset");
 
 /* --- Day details --- */
-const statsSheet = $("stats-sheet");
-const statsSheetTitle = $("stats-sheet-title");
 const dayRings = $("day-rings");
 const dayMicro = $("day-micro");
-const dayMealShares = $("day-meal-shares");
 
 /* --- Logs --- */
 const logSheet = $("log-sheet");
@@ -978,6 +988,8 @@ const logValue = $("log-value");
 const logUnit = $("log-unit");
 const closeLog = $("close-log");
 const applyLog = $("apply-log");
+const logMinus = $("log-minus");
+const logPlus = $("log-plus");
 
 /* --- Statistics --- */
 const periodArea = $("period");
@@ -1112,7 +1124,12 @@ const loadPerson = () => {
 };
 
 // Старые данные хранят тип строкой — конвертируем при загрузке
-const STRING_TO_TYPE = {snack: SNACK, breakfast: BREAKFAST, lunch: LUNCH, dinner: DINNER};
+const STRING_TO_TYPE = {
+    snack: SNACK,
+    breakfast: BREAKFAST,
+    lunch: LUNCH,
+    dinner: DINNER,
+};
 
 const loadMeals = () => {
     meals = read("meals", []).filter(Boolean);
@@ -1804,6 +1821,9 @@ const renderDayMeals = () => {
 const renderDay = () => {
     chosenDay.textContent = getDateText(date);
     renderDayMeals();
+    renderLogRings();
+    renderDayRings();
+    renderDayMicro();
 };
 
 const renderDiary = () => {
@@ -1811,8 +1831,6 @@ const renderDiary = () => {
     calendarDate.setDate(1);
     renderPageCalendar();
     renderDay();
-    renderLogRings();
-    renderDayRings();
 };
 
 dayMealsList.onclick = (e) => {
@@ -1862,6 +1880,20 @@ logValue.addEventListener("input", () => {
     if (cfg)
         logValue.value = normalizeNumber(logValue.value, cfg.max, cfg.decimals);
 });
+
+const shiftLogValue = (diff) => {
+    const cfg = LOGS[logKind];
+    if (!cfg) return;
+    const value = parseNumber(logValue.value) || 0;
+    const next = round(
+        Math.max(0, Math.min(value + diff, cfg.max)),
+        cfg.decimals,
+    );
+    logValue.value = String(next).replace(".", ",");
+};
+
+logMinus.onclick = () => shiftLogValue(-LOGS[logKind]?.step);
+logPlus.onclick = () => shiftLogValue(LOGS[logKind]?.step);
 
 const applyWaterLog = (key, value) => {
     const entries = dayEntries(logs.water, key).sort((a, b) => b.date - a.date);
@@ -1975,31 +2007,10 @@ const microBarsHtml = (entries) =>
         )
         .join("");
 
-
-
-const openStatsSheet = () => {
-    const key = getDate(date);
-    const s = getSumMeals(key);
-    statsSheetTitle.textContent = getDateText(date);
-
+const renderDayMicro = () => {
+    const d = getDate(date);
+    const s = getSumMeals(d);
     dayMicro.innerHTML = microBarsHtml(microEntries(s.micro));
-
-    const list = getMeals(key);
-    dayMealShares.innerHTML = list.length
-        ? list
-            .map((m) => {
-                const kcal = sumMeals(m.items).kcal;
-                return `<div class="row gap-10 small">
-            <span class="mono help">${getTimeText(m.eaten)}</span>
-            <span>${S.mealTypes[m.type]}</span>
-            <span class="mono right">${fmt(kcal)} ${S.kcalUnit}</span>
-            <span class="mono help share">${s.kcal ? fmt((kcal / s.kcal) * 100) : 0}%</span>
-        </div>`;
-            })
-            .join("")
-        : `<div class="empty">${S.noRecords}</div>`;
-
-    openSheet(statsSheet);
 };
 
 // ==========================================================================
@@ -2345,7 +2356,7 @@ const updateMealsIndex = () => {
         if (!mealsIndex.has(d)) mealsIndex.set(d, []);
         mealsIndex.get(d).push(m);
     });
-}
+};
 const saveMeal = () => {
     meal.items = meal.items.map(stripFragment);
     meal.tags = [...mealTags];
@@ -3335,18 +3346,45 @@ const birthdate = {digits: "", cursor: 0};
 
 /* --- Daily log rings --- */
 
-const RING_CCW = " translate(0,64) scale(1,-1)";
+// const logRingHtml = ({kind, value, delta, goal, label, color}) => {
+//     const ratio = goal ? Math.abs(delta) / goal : 0;
+//     const length = RING_LENGTH * Math.min(ratio, 1);
+//     const offset = delta < 0 ? -length : 0;
+//     return `<button class="ring" data-kind="${kind}" aria-label="${label}">
+//         <svg viewBox="0 0 64 64" aria-hidden="true">
+//             <circle class="track" cx="32" cy="32" r="28"></circle>
+//             <circle class="fill" cx="32" cy="32" r="28"
+//                 style="stroke:var(${color});stroke-dasharray:${length} ${RING_LENGTH};stroke-dashoffset:${offset}"
+//                 transform="rotate(-90 32 32)"/>
+//         </svg>
+//         <div class="ring-value mono">${String(value).replace('.', ',')}</div>
+//         <div class="small help center">${label}</div>
+//     </button>`;
+// };
 
-const logRingHtml = ({kind, fill, goal, text, label, unit, color, ccw}) => {
-    const ratio = goal ? Math.abs(fill) / goal : 0;
+const logRingHtml = ({kind, value, delta, goal, label, color}) => {
+    console.assert(goal > 0);
+    let ring = '';
+
+    if (Math.abs(delta) > goal) {
+        ring = `<circle class="fill" cx="32" cy="32" r="28" stroke="var(${color})" />;
+            <line x1="32" y1="0" x2="32" y2="8" stroke="var(--bg)" stroke-width="2" 
+            transform="rotate(${360 * delta / goal} 32 32)"/>`;
+    } else {
+        const ratio = Math.abs(delta / goal);
+        const length = RING_LENGTH * ratio;
+        const angle = 90 + (delta < 0) * 360 * ratio;
+        ring = `<circle class="fill" cx="32" cy="32" r="28"
+            style="stroke:var(${color});stroke-dasharray:${length} ${RING_LENGTH}"
+            transform="rotate(-${angle} 32 32)"/>`
+    }
+
     return `<button class="ring" data-kind="${kind}" aria-label="${label}">
         <svg viewBox="0 0 64 64" aria-hidden="true">
             <circle class="track" cx="32" cy="32" r="28"></circle>
-            <circle class="fill" cx="32" cy="32" r="28"
-                style="stroke:var(${color});stroke-dasharray:${RING_LENGTH * Math.min(1, ratio)} ${RING_LENGTH}"
-                transform="rotate(-90 32 32)${ccw ? RING_CCW : ""}"></circle>
+            ${ring}
         </svg>
-        <div class="ring-value mono">${text}</div>
+        <div class="ring-value mono">${String(value).replace('.', ',')}</div>
         <div class="small help center">${label}</div>
     </button>`;
 };
@@ -3354,54 +3392,54 @@ const logRingHtml = ({kind, fill, goal, text, label, unit, color, ccw}) => {
 // The last weight measured before today
 const prevWeightToday = () => {
     const t = startOfDay(new Date()).getTime();
-    const past = logs.weight.filter((e) => e.date < t).sort((a, b) => a.date - b.date);
+    const past = logs.weight
+        .filter((e) => e.date < t)
+        .sort((a, b) => a.date - b.date);
     return past.at(-1)?.weight ?? null;
 };
 
 const renderLogRings = () => {
-    const key = getDate(new Date());
+    const d = getDate(date);
     const t = person.targets;
-    const w = dayWeight(key);
-    const prev = prevWeightToday();
-    const delta = w != null && prev != null ? w - prev : null;
-    const steps = daySteps(key);
-    const sleep = daySleep(key);
-    const water = dayWater(key);
+    const weight = dayWeight(d);
+    const delta = weight - prevWeightToday();
+    const steps = daySteps(d);
+    const sleep = daySleep(d);
+    const water = dayWater(d);
 
     logRings.innerHTML = [
         {
             kind: "weight",
-            fill: delta ?? 0,
             goal: 1,
-            text: w == null ? "—" : fmt(w, 1),
+            delta: delta,
+            value: weight,
             label: S.weight,
             unit: S.kg,
-            color: "--c2",
-            ccw: delta < 0,
+            color: "--c4",
         },
         {
             kind: "steps",
-            fill: steps ?? 0,
             goal: t.steps,
-            text: fmt(steps),
+            delta: steps,
+            value: steps,
             label: S.steps,
             unit: S.logUnits.steps,
             color: "--c1",
         },
         {
             kind: "sleep",
-            fill: sleep ?? 0,
             goal: t.sleep,
-            text: fmt(sleep, 1),
+            delta: sleep,
+            value: sleep,
             label: S.sleep,
             unit: S.h,
             color: "--c3",
         },
         {
             kind: "water",
-            fill: water,
             goal: t.water,
-            text: fmt(water / 1000, 1),
+            delta: water,
+            value: round(water / 1000, 1),
             label: S.water,
             unit: S.l,
             color: "--blue",
@@ -3413,15 +3451,20 @@ const renderLogRings = () => {
 
 const renderDayRings = () => {
     const d = getDate(date);
+    // Без записей за день getSumMeals возвращает undefined — чистим и выходим
     const s = getSumMeals(d);
+    if (!s) {
+        dayRings.innerHTML = "";
+        return;
+    }
     const g = person.goals;
 
     dayRings.innerHTML =
-        ringHtml(s.kcal, g.kcal, "--accent", S.kcal, S.kcalUnit) +
+        ringHtml(s.kcal, g.kcal, "--c3", S.kcal, S.kcalUnit) +
         ringHtml(s.protein, g.protein, "--c1", S.protein, S.g) +
-        ringHtml(s.fat, g.fat, "--c2", S.fat, S.g) +
-        ringHtml(s.carbs, g.carbs, "--c3", S.carbs, S.g);
-}
+        ringHtml(s.fat, g.fat, "--c1", S.fat, S.g) +
+        ringHtml(s.carbs, g.carbs, "--c1", S.carbs, S.g);
+};
 
 logRings.onclick = (e) => {
     const ring = e.target.closest("[data-kind]");
@@ -3462,13 +3505,11 @@ const fillPersonForm = () => {
     // Macro ratio: preset the values computed from the default goals
     const kcal = person.goals.kcal;
     const pct = (g, perKcal) => Math.round(((g * perKcal) / kcal) * 100);
-    const r =
-        person.macroRatio ||
-        {
-            protein: pct(person.goals.protein, 4),
-            fat: pct(person.goals.fat, 9),
-            carbs: pct(person.goals.carbs, 4),
-        };
+    const r = person.macroRatio || {
+        protein: pct(person.goals.protein, 4),
+        fat: pct(person.goals.fat, 9),
+        carbs: pct(person.goals.carbs, 4),
+    };
     Object.entries(macroInputs).forEach(([k, input]) => {
         input.value = person.macroRatio ? String(r[k]) : fmt(r[k]);
         input.placeholder = "0";
@@ -3476,7 +3517,7 @@ const fillPersonForm = () => {
 
     // Нормы дня: показываем эффективные значения (ручные поверх автоматических)
     GOAL_KEYS.forEach((k) => {
-        goalInputs[k === "satFat" ? "satfat" : k].value = fmt(person.goals[k], 1);
+        goalInputs[k === "satFat" ? "satFat" : k].value = fmt(person.goals[k], 1);
     });
 };
 
@@ -3521,7 +3562,7 @@ const applyPersonForm = () => {
     // Пустое поле возвращает автоматический расчёт
     person.manualTargets = Object.fromEntries(
         GOAL_KEYS.map((k) => {
-            const v = parseNumber(goalInputs[k === "satFat" ? "satfat" : k].value);
+            const v = parseNumber(goalInputs[k === "satFat" ? "satFat" : k].value);
             return [k, v == null ? null : Math.max(0, v)];
         }),
     );
@@ -3557,10 +3598,14 @@ const ACTIVITY_LEVELS = [1.2, 1.375, 1.55, 1.725, 1.9];
 const renderActivityLevel = () => {
     const i = ACTIVITY_LEVELS.reduce(
         (best, l, j) =>
-            Math.abs(person.activity - l) < Math.abs(person.activity - ACTIVITY_LEVELS[best]) ? j : best,
+            Math.abs(person.activity - l) <
+            Math.abs(person.activity - ACTIVITY_LEVELS[best])
+                ? j
+                : best,
         0,
     );
     activityLevel.textContent = `${S.activityLevels[i]}`;
+    activityInput.style.setProperty("--value", `${person.activity * 100 - 100}%`);
 };
 
 activityInput.addEventListener("input", () => {
@@ -3591,7 +3636,7 @@ maskNumber(goalInputs.carbs, 1000, 1);
 maskNumber(goalInputs.fiber, 200, 1);
 maskNumber(goalInputs.sugar, 500, 1);
 maskNumber(goalInputs.salt, 50, 1);
-maskNumber(goalInputs.satfat, 200, 1);
+maskNumber(goalInputs.satFat, 200, 1);
 Object.values(macroInputs).forEach((input) => maskNumber(input, 100, 0));
 
 /* --- Birthdate --- */
@@ -4627,7 +4672,9 @@ const renderStats = () => {
                     ? null
                     : average(
                         pastDays(addDays(b.start, -6), b.end).map((d) =>
-                            getMeals(getDate(d)).length ? getSumMeals(getDate(d)).kcal : null,
+                            getMeals(getDate(d)).length
+                                ? getSumMeals(getDate(d)).kcal
+                                : null,
                         ),
                     ),
             ),
@@ -4909,8 +4956,10 @@ const renderStats = () => {
     if (!logged.length) {
         empty("micro-chart");
     } else {
-        const sorted = MICRO_KEYS.map((k) => ({label: S[k], value: micro[k]}))
-            .sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
+        const sorted = MICRO_KEYS.map((k) => ({
+            label: S[k],
+            value: micro[k],
+        })).sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
         $("micro-chart").innerHTML =
             `<div class="h-list">${microBarsHtml(sorted)}</div>`;
     }
