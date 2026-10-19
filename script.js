@@ -1666,7 +1666,7 @@ const getCalendarPage = (delta = 0) => {
     const dayHtml = (n) => {
         const d = getDate(new Date(y, m, n));
         const s = getSumMeals(d);
-        const color = s ? "--bg" : d > t ? "--help" : "--text";
+        const color = d > t ? "--help" : "--text";
         return `<button><span style="color: var(${color})" class="${d === c ? "big" : ""}">${n}</span>${getMarkHtml(s)}</button>`;
     };
 
@@ -1847,14 +1847,6 @@ dayMealsList.onclick = (e) => {
 // ==========================================================================
 
 let logKind = null;
-let logDate = new Date();
-
-const logTime = (hour) => {
-    if (getDate(logDate) === getDate(new Date())) return Date.now();
-    const d = startOfDay(logDate);
-    d.setHours(hour);
-    return d.getTime();
-};
 
 const logCurrent = (kind, key) =>
     ({
@@ -1864,42 +1856,39 @@ const logCurrent = (kind, key) =>
         weight: () => dayWeight(key),
     })[kind]();
 
-const openLogSheet = (kind, today = false) => {
+const openLogSheet = (kind) => {
     logKind = kind;
-    logDate = today ? new Date() : date;
-    const cfg = LOGS[kind];
-    logTitle.textContent = `${S[kind]} · ${getDateText(logDate)}`;
+    const {decimals} = LOGS[kind];
+    logTitle.textContent = `${S[kind]} · ${getDateText(date)}`;
     logUnit.textContent = S.logUnits[kind];
-    logValue.value = fmt(logCurrent(kind, getDate(logDate)), cfg.decimals);
-    logValue.inputMode = cfg.decimals ? "decimal" : "numeric";
+    logValue.value = fmt(logCurrent(kind, getDate(date)), decimals);
+    logValue.inputMode = decimals ? "decimal" : "numeric";
     openSheet(logSheet);
 };
 
 logValue.addEventListener("input", () => {
-    const cfg = LOGS[logKind];
-    if (cfg)
-        logValue.value = normalizeNumber(logValue.value, cfg.max, cfg.decimals);
+    const {max, decimals} = LOGS[logKind];
+    logValue.value = normalizeNumber(logValue.value, max, decimals);
 });
 
 const shiftLogValue = (diff) => {
-    const cfg = LOGS[logKind];
-    if (!cfg) return;
-    const value = parseNumber(logValue.value) || 0;
-    const next = round(
-        Math.max(0, Math.min(value + diff, cfg.max)),
-        cfg.decimals,
+    const {max, decimals} = LOGS[logKind];
+    let value = parseNumber(logValue.value) || 0;
+    value = round(
+        Math.max(0, Math.min(value + diff, max)),
+        decimals,
     );
-    logValue.value = String(next).replace(".", ",");
+    logValue.value = String(value).replace(".", ",");
 };
 
-logMinus.onclick = () => shiftLogValue(-LOGS[logKind]?.step);
-logPlus.onclick = () => shiftLogValue(LOGS[logKind]?.step);
+logMinus.onclick = () => shiftLogValue(-LOGS[logKind].step);
+logPlus.onclick = () => shiftLogValue(LOGS[logKind].step);
 
 const applyWaterLog = (key, value) => {
     const entries = dayEntries(logs.water, key).sort((a, b) => b.date - a.date);
     const old = entries.reduce((s, e) => s + e.ml, 0);
     let diff = (value || 0) - old;
-    if (diff > 0) logs.water.push({date: logTime(12), ml: diff});
+    if (diff > 0) logs.water.push({date: new Date(), ml: diff});
     for (const e of entries) {
         if (diff >= 0) break;
         const d = Math.min(e.ml, -diff);
@@ -1916,11 +1905,7 @@ const applyDailyLog = (entries, key, entry) => {
 };
 
 const applyWeightLog = (key, value) => {
-    const target = morningWeight(dayEntries(logs.weight, key));
-    if (value == null)
-        logs.weight = logs.weight.filter((e) => getDate(e.date) !== key);
-    else if (target) target.weight = value;
-    else logs.weight.push({date: logTime(8), weight: value});
+    logs.weight.push({date, weight: value});
     saveWeight();
     syncPersonWeight();
 };
@@ -1932,9 +1917,9 @@ const syncPersonWeight = () => {
 };
 
 applyLog.onclick = () => {
-    const key = getDate(logDate);
+    const key = getDate(date);
     const value = parseNumber(logValue.value);
-    const day = startOfDay(logDate).getTime();
+    const day = startOfDay(date).getTime();
 
     if (logKind === "water") applyWaterLog(key, value);
     else if (logKind === "sleep") {
@@ -2010,7 +1995,8 @@ const microBarsHtml = (entries) =>
 const renderDayMicro = () => {
     const d = getDate(date);
     const s = getSumMeals(d);
-    dayMicro.innerHTML = microBarsHtml(microEntries(s.micro));
+
+    dayMicro.innerHTML = s ? microBarsHtml(microEntries(s.micro)) : '';
 };
 
 // ==========================================================================
@@ -3367,8 +3353,9 @@ const logRingHtml = ({kind, value, delta, goal, label, color}) => {
     let ring = '';
 
     if (Math.abs(delta) > goal) {
+        const d = delta > 0 ? "M 29 0 L 32 4 L 29 9" : "M 35 0 L 32 4 L 35 9";
         ring = `<circle class="fill" cx="32" cy="32" r="28" stroke="var(${color})" />;
-            <line x1="32" y1="0" x2="32" y2="8" stroke="var(--bg)" stroke-width="2" 
+            <path d="${d}" stroke="var(--bg)" stroke-width="2" 
             transform="rotate(${360 * delta / goal} 32 32)"/>`;
     } else {
         const ratio = Math.abs(delta / goal);
@@ -3451,7 +3438,6 @@ const renderLogRings = () => {
 
 const renderDayRings = () => {
     const d = getDate(date);
-    // Без записей за день getSumMeals возвращает undefined — чистим и выходим
     const s = getSumMeals(d);
     if (!s) {
         dayRings.innerHTML = "";
@@ -3468,7 +3454,7 @@ const renderDayRings = () => {
 
 logRings.onclick = (e) => {
     const ring = e.target.closest("[data-kind]");
-    if (ring) openLogSheet(ring.dataset.kind, true);
+    if (ring) openLogSheet(ring.dataset.kind);
 };
 
 const renderPerson = () => {
@@ -4706,7 +4692,7 @@ const renderStats = () => {
         dayBuckets,
         [
             {
-                label: S.kcalDeviation,
+                label: S.kcal,
                 values: daySums.map((s) => (s ? s.kcal - g.kcal : null)),
                 color: (v) => (v > 0 ? "--c4" : "--c2"),
             },

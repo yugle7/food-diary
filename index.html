@@ -252,6 +252,7 @@
     </div>
 
     <div class="card">
+        <h3 data-i18n="macros"></h3>
         <div class="chart" id="macros-chart"></div>
     </div>
 
@@ -359,7 +360,6 @@
     <h2 class="group" data-i18n="micro"></h2>
 
     <div class="card">
-        <h3 data-i18n="micro"></h3>
         <div class="chart" id="micro-chart"></div>
     </div>
 </section>
@@ -671,8 +671,8 @@
         <span id="log-unit"></span>
     </div>
     <footer>
-        <button id="log-minus" class="left">−</button>
-        <button id="log-plus" class="left">+</button>
+        <button id="log-minus" class="left" data-i18n-aria-label="minus"><svg><use href="sprite.svg#minus"></use></svg></button>
+        <button id="log-plus" class="left" data-i18n-aria-label="plus"><svg><use href="sprite.svg#plus"></use></svg></button>
         <button id="close-log" class="right" data-i18n="cancel"></button>
         <button id="apply-log" class="accent">OK</button>
     </footer>

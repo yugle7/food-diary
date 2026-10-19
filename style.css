@@ -333,7 +333,7 @@ i {
   top: 50%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  opacity: 0.7;
+  opacity: 0.5;
   z-index: 0;
 }
 

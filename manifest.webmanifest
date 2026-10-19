@@ -7,7 +7,7 @@
     "ru": "Офлайн-дневник питания: приемы пищи текстом, голосом и с фото, КБЖУ, микронутриенты и 15 графиков прогресса.",
     "en": "An offline food diary: meals by text, voice and photo, calories, macros, micronutrients and 15 progress charts."
   },
-  "version": "2026-10-15a",
+  "version": "2026-10-17a",
   "scope": "./",
   "start_url": "./",
   "display": "standalone",

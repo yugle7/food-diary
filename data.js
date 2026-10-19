@@ -23,6 +23,8 @@ window.TRANSLATIONS = {
     next: "Далее",
     previousPeriod: "Предыдущий период",
     nextPeriod: "Следующий период",
+    minus: "Уменьшить",
+    plus: "Увеличить",
 
     /* --- Diary --- */
     dayDetails: "Детали дня",
@@ -205,7 +207,6 @@ window.TRANSLATIONS = {
     avg7: "Среднее за 7 дней",
     trend: "Тренд",
     normPercent: "% нормы",
-    kcalDeviation: "Отклонение ккал",
     kcalOver: "Перебор ккал",
     kcalUnder: "Недобор ккал",
     average: "Среднее за период",
@@ -291,6 +292,8 @@ window.TRANSLATIONS = {
     next: "Next",
     previousPeriod: "Previous period",
     nextPeriod: "Next period",
+    minus: "Decrease",
+    plus: "Increase",
 
     /* --- Diary --- */
     dayDetails: "Day details",
@@ -469,7 +472,6 @@ window.TRANSLATIONS = {
     avg7: "7-day average",
     trend: "Trend",
     normPercent: "% of goal",
-    kcalDeviation: "Calorie deviation",
     kcalOver: "Calories over",
     kcalUnder: "Calories under",
     average: "Period average",
