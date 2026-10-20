@@ -175,7 +175,7 @@ let frequency = null;
 const $ = (id) => document.getElementById(id);
 
 const pad = (n, d = 2) => String(n).padStart(d, "0");
-const getDate = (d) => {
+const getDateKey = (d) => {
     d = new Date(d);
     return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
 };
@@ -390,7 +390,7 @@ const updatePerson = () => {
     person.goals = {
         ...computeGoals(person),
         ...Object.fromEntries(
-            Object.entries(person.manualTargets || {}).filter(([, v]) => v != null),
+            Object.entries(person.goals || {}).filter(([, v]) => v != null),
         ),
     };
 };
@@ -943,15 +943,21 @@ const weightInput = $("weight");
 const activityInput = $("activity");
 const activityLevel = $("activity-level");
 const goalInput = $("goal");
-const sleepInput = $("target-sleep");
-const stepsInput = $("target-steps");
-const waterInput = $("target-water");
-const targetWeightInput = $("target-weight");
+
+const targetInputs = {
+    sleep: $("target-sleep"),
+    steps: $("target-steps"),
+    water: $("target-water"),
+    weight: $("target-weight")
+};
+
 const macroInputs = {
     protein: $("macro-protein"),
     fat: $("macro-fat"),
     carbs: $("macro-carbs"),
 };
+
+const TARGET_KEYS = ['sleep', 'steps', 'water', 'weight'];
 const GOAL_KEYS = [
     "kcal",
     "protein",
@@ -1075,10 +1081,11 @@ const saveFoods = () => write("foods", foods);
 const saveTags = () => write("tags", tags);
 const saveFavorites = () => write("favorites", favorites);
 const saveRecents = () => write("recents", recents);
-const saveWeight = () => write("weight", logs.weight);
-const saveWater = () => write("water", logs.water);
-const saveSleep = () => write("sleep", logs.sleep);
-const saveActivity = () => write("activity", logs.activity);
+// const saveWeight = () => write("weight", logs.weight);
+// const saveWater = () => write("water", logs.water);
+// const saveSleep = () => write("sleep", logs.sleep);
+// const saveSteps = () => write("steps", logs.steps);
+const saveLogs = (name) => write(name, logs[name]);
 
 const personToStore = () => {
     const {
@@ -1090,7 +1097,7 @@ const personToStore = () => {
         weightGoal,
         macroRatio,
         targets,
-        manualTargets,
+        goals,
     } = person;
     return {
         sex,
@@ -1101,7 +1108,7 @@ const personToStore = () => {
         weightGoal,
         macroRatio,
         targets,
-        manualTargets,
+        goals,
     };
 };
 
@@ -1115,10 +1122,10 @@ const loadPerson = () => {
     person = {...DEFAULT_PERSON, ...read("person", {})};
     updatePerson();
     person.targets = {...defaultTargets(), ...person.targets};
-    person.manualTargets = Object.fromEntries(
-        GOAL_KEYS.filter((k) => person.manualTargets?.[k] != null).map((k) => [
+    person.goals = Object.fromEntries(
+        GOAL_KEYS.filter((k) => person.goals?.[k] != null).map((k) => [
             k,
-            person.manualTargets[k],
+            person.goals[k],
         ]),
     );
 };
@@ -1193,7 +1200,7 @@ const exportData = () => {
     const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${APP_NAME}-${getDate(new Date())}.json`;
+    a.download = `${APP_NAME}-${getDateKey(new Date())}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
@@ -1622,13 +1629,27 @@ const getSumMeals = (d) => {
 };
 
 const dayEntries = (journal, key) =>
-    journal.filter((e) => getDate(e.date) === key);
+    journal.filter((e) => getDateKey(e.date) === key);
+
 const dayWater = (key) =>
     dayEntries(logs.water, key).reduce((s, e) => s + e.ml, 0);
-const daySleep = (key) => dayEntries(logs.sleep, key)[0]?.hours ?? null;
-const daySteps = (key) => dayEntries(logs.activity, key)[0]?.steps ?? null;
+
+// Last weight measured strictly before the given day
+const prevWeight = (key) => {
+    const limit = startOfDay(
+        key instanceof Date ? key : new Date(Math.floor(key / 10000), Math.floor((key % 10000) / 100), key % 100),
+    ).getTime();
+    const past = logs.weight
+        .filter((e) => e.date < limit)
+        .sort((a, b) => a.date - b.date);
+    return past.at(-1)?.weight ?? null;
+};
+
+// A day without measurements: sleep and steps are 0, weight carries over from the previous measurement
+const daySleep = (key) => dayEntries(logs.sleep, key)[0]?.hours ?? 0;
+const daySteps = (key) => dayEntries(logs.activity, key)[0]?.steps ?? 0;
 const dayWeight = (key) =>
-    morningWeight(dayEntries(logs.weight, key))?.weight ?? null;
+    morningWeight(dayEntries(logs.weight, key))?.weight ?? prevWeight(key);
 
 /* --- Calendar --- */
 
@@ -1660,11 +1681,11 @@ const getCalendarPage = (delta = 0) => {
 
     const first = (new Date(y, m, 1).getDay() + 6) % 7;
     const last = new Date(y, m + 1, 0).getDate();
-    const t = getDate(today);
-    const c = getDate(date);
+    const t = getDateKey(today);
+    const c = getDateKey(date);
 
     const dayHtml = (n) => {
-        const d = getDate(new Date(y, m, n));
+        const d = getDateKey(new Date(y, m, n));
         const s = getSumMeals(d);
         const color = d > t ? "--help" : "--text";
         return `<button><span style="color: var(${color})" class="${d === c ? "big" : ""}">${n}</span>${getMarkHtml(s)}</button>`;
@@ -1812,7 +1833,7 @@ const mealHtml = (m) => {
 };
 
 const renderDayMeals = () => {
-    const list = getMeals(getDate(date));
+    const list = getMeals(getDateKey(date));
     dayMealsList.innerHTML = list.length
         ? list.map(mealHtml).join("")
         : `<div class="small help center pad-20">${S.noRecords}</div>`;
@@ -1851,8 +1872,8 @@ let logKind = null;
 const logCurrent = (kind, key) =>
     ({
         water: () => dayWater(key) || null,
-        sleep: () => daySleep(key),
-        steps: () => daySteps(key),
+        sleep: () => daySleep(key) || null,
+        steps: () => daySteps(key) || null,
         weight: () => dayWeight(key),
     })[kind]();
 
@@ -1861,7 +1882,7 @@ const openLogSheet = (kind) => {
     const {decimals} = LOGS[kind];
     logTitle.textContent = `${S[kind]} · ${getDateText(date)}`;
     logUnit.textContent = S.logUnits[kind];
-    logValue.value = fmt(logCurrent(kind, getDate(date)), decimals);
+    logValue.value = fmt(logCurrent(kind, getDateKey(date)), decimals);
     logValue.inputMode = decimals ? "decimal" : "numeric";
     openSheet(logSheet);
 };
@@ -1884,70 +1905,26 @@ const shiftLogValue = (diff) => {
 logMinus.onclick = () => shiftLogValue(-LOGS[logKind].step);
 logPlus.onclick = () => shiftLogValue(LOGS[logKind].step);
 
-const applyWaterLog = (key, value) => {
-    const entries = dayEntries(logs.water, key).sort((a, b) => b.date - a.date);
-    const old = entries.reduce((s, e) => s + e.ml, 0);
-    let diff = (value || 0) - old;
-    if (diff > 0) logs.water.push({date: new Date(), ml: diff});
-    for (const e of entries) {
-        if (diff >= 0) break;
-        const d = Math.min(e.ml, -diff);
-        e.ml -= d;
-        diff += d;
-    }
-    logs.water = logs.water.filter((e) => e.ml > 0);
-    saveWater();
-};
-
-const applyDailyLog = (entries, key, entry) => {
-    const rest = entries.filter((e) => getDate(e.date) !== key);
-    return entry ? [...rest, entry] : rest;
-};
-
-const applyWeightLog = (key, value) => {
-    logs.weight.push({date, weight: value});
-    saveWeight();
-    syncPersonWeight();
-};
-
-const syncPersonWeight = () => {
-    const last = [...logs.weight].sort((a, b) => a.date - b.date).at(-1);
-    if (last) person.weight = last.weight;
-    savePerson();
+const updatePersonWeight = () => {
+    logs.weight.sort((a, b) => a.key - b.key);
+    person.weight = logs.weight.at(-1).value;
 };
 
 applyLog.onclick = () => {
-    const key = getDate(date);
+    const key = getDateKey(date);
     const value = parseNumber(logValue.value);
-    const day = startOfDay(date).getTime();
 
-    if (logKind === "water") applyWaterLog(key, value);
-    else if (logKind === "sleep") {
-        logs.sleep = applyDailyLog(
-            logs.sleep,
-            key,
-            value ? {date: day, hours: value} : null,
-        );
-        saveSleep();
-    } else if (logKind === "steps") {
-        logs.activity = applyDailyLog(
-            logs.activity,
-            key,
-            value
-                ? {
-                    date: day,
-                    steps: value,
-                    kcal: Math.round(value * STEP_KCAL * person.weight),
-                }
-                : null,
-        );
-        saveActivity();
-    } else applyWeightLog(key, value || null);
+    logs[logKind] = logs[logKind].filter(q => q.key !== key);
+    logs[logKind].push({key, date: new Date(), value: (value || 0)});
+
+    if (logKind === "water") {
+        updatePersonWeight();
+        savePerson();
+    }
+    write(logKind, logs[logKind])
 
     closeSheet();
-    if (page === pages.person) {
-        renderPerson();
-    } else renderDiary();
+    renderDiary();
 };
 
 closeLog.onclick = closeSheet;
@@ -1993,7 +1970,7 @@ const microBarsHtml = (entries) =>
         .join("");
 
 const renderDayMicro = () => {
-    const d = getDate(date);
+    const d = getDateKey(date);
     const s = getSumMeals(d);
 
     dayMicro.innerHTML = s ? microBarsHtml(microEntries(s.micro)) : '';
@@ -2338,7 +2315,7 @@ const updateMealsIndex = () => {
     mealsIndex = new Map();
     meals = meals.sort((a, b) => a.eaten - b.eaten);
     meals.forEach((m) => {
-        const d = getDate(m.eaten);
+        const d = getDateKey(m.eaten);
         if (!mealsIndex.has(d)) mealsIndex.set(d, []);
         mealsIndex.get(d).push(m);
     });
@@ -2859,11 +2836,11 @@ const renderWhenCalendar = () => {
     const m = whenMonth.getMonth();
     const first = (new Date(y, m, 1).getDay() + 6) % 7;
     const last = new Date(y, m + 1, 0).getDate();
-    const t = getDate(new Date());
-    const s = getDate(whenDate);
+    const t = getDateKey(new Date());
+    const s = getDateKey(whenDate);
 
     const getDayType = (n) => {
-        const d = getDate(new Date(y, m, n));
+        const d = getDateKey(new Date(y, m, n));
         if (d === s) return "selected";
         if (d === t) return "today";
         if (d > t) return "future";
@@ -3377,16 +3354,10 @@ const logRingHtml = ({kind, value, delta, goal, label, color}) => {
 };
 
 // The last weight measured before today
-const prevWeightToday = () => {
-    const t = startOfDay(new Date()).getTime();
-    const past = logs.weight
-        .filter((e) => e.date < t)
-        .sort((a, b) => a.date - b.date);
-    return past.at(-1)?.weight ?? null;
-};
+const prevWeightToday = () => prevWeight(getDateKey(new Date()));
 
 const renderLogRings = () => {
-    const d = getDate(date);
+    const d = getDateKey(date);
     const t = person.targets;
     const weight = dayWeight(d);
     const delta = weight - prevWeightToday();
@@ -3437,7 +3408,7 @@ const renderLogRings = () => {
 };
 
 const renderDayRings = () => {
-    const d = getDate(date);
+    const d = getDateKey(date);
     const s = getSumMeals(d);
     if (!s) {
         dayRings.innerHTML = "";
@@ -3483,75 +3454,37 @@ const fillPersonForm = () => {
     weightInput.value = fmt(person.weight, 1);
 
     const t = person.targets;
-    sleepInput.value = fmt(t.sleep, 1);
-    stepsInput.value = String(t.steps);
-    waterInput.value = fmt(t.water / 1000, 1);
-    targetWeightInput.value = fmt(t.weight, 1);
+    targetInputs.sleep.value = fmt(t.sleep, 1);
+    targetInputs.steps.value = String(t.steps);
+    targetInputs.water.value = fmt(t.water, 1);
+    targetInputs.weight.value = fmt(t.weight, 1);
 
-    // Macro ratio: preset the values computed from the default goals
-    const kcal = person.goals.kcal;
-    const pct = (g, perKcal) => Math.round(((g * perKcal) / kcal) * 100);
-    const r = person.macroRatio || {
-        protein: pct(person.goals.protein, 4),
-        fat: pct(person.goals.fat, 9),
-        carbs: pct(person.goals.carbs, 4),
-    };
-    Object.entries(macroInputs).forEach(([k, input]) => {
-        input.value = person.macroRatio ? String(r[k]) : fmt(r[k]);
-        input.placeholder = "0";
-    });
-
-    // Нормы дня: показываем эффективные значения (ручные поверх автоматических)
-    GOAL_KEYS.forEach((k) => {
-        goalInputs[k === "satFat" ? "satFat" : k].value = fmt(person.goals[k], 1);
-    });
+    GOAL_KEYS.forEach(k => goalInputs[k].value = fmt(person.goals[k], 0));
 };
 
 /* --- Сохранение на blur --- */
 
+const updateLogsWeight = () => {
+    const key = getDateKey(Date.now());
+    logs.weight = logs.weight.filter(q => q.key !== key);
+    logs.weight.push({key, value: person.weight});
+    write('weight', logs.weight);
+}
+
 const applyPersonForm = () => {
-    person.birthdate = validDate()
-        ? +(
-            birthdate.digits.slice(4, 8) +
-            birthdate.digits.slice(2, 4) +
-            birthdate.digits.slice(0, 2)
-        )
-        : null;
+    person.birthdate = getBirthdate();
     person.height = parseNumber(heightInput.value) || person.height;
 
     const weight = parseNumber(weightInput.value);
     if (weight && weight !== person.weight) {
-        logs.weight.push({date: Date.now(), weight});
-        saveWeight();
         person.weight = weight;
+        updateLogsWeight();
     }
+    TARGET_KEYS.forEach(name =>
+        person.targets[name] = parseNumber(targetInputs[name].value) || person.targets[name]);
 
-    const num = (input, fallback, mul = 1) => {
-        const v = parseNumber(input.value);
-        return v == null ? fallback : Math.max(0, v * mul);
-    };
-    person.targets = {
-        sleep: num(sleepInput, person.targets.sleep),
-        steps: Math.round(num(stepsInput, person.targets.steps)),
-        water: Math.round(num(waterInput, person.targets.water / 1000, 1000)),
-        weight: num(targetWeightInput, person.targets.weight),
-    };
-
-    const p = parseNumber(macroInputs.protein.value);
-    const f = parseNumber(macroInputs.fat.value);
-    const c = parseNumber(macroInputs.carbs.value);
-    person.macroRatio =
-        p == null && f == null && c == null
-            ? null
-            : {protein: p || 0, fat: f || 0, carbs: c || 0};
-
-    // Пустое поле возвращает автоматический расчёт
-    person.manualTargets = Object.fromEntries(
-        GOAL_KEYS.map((k) => {
-            const v = parseNumber(goalInputs[k === "satFat" ? "satFat" : k].value);
-            return [k, v == null ? null : Math.max(0, v)];
-        }),
-    );
+    GOAL_KEYS.forEach(name =>
+        person.goals[name] = parseNumber(goalInputs[name].value) || person.goals[name]);
 
     savePerson();
     renderPerson();
@@ -3562,16 +3495,12 @@ const applyPersonForm = () => {
     birthdateInput,
     heightInput,
     weightInput,
-    sleepInput,
-    stepsInput,
-    waterInput,
-    targetWeightInput,
-    ...Object.values(macroInputs),
+    ...Object.values(targetInputs),
     ...Object.values(goalInputs),
 ].forEach((input) => input.addEventListener("blur", applyPersonForm));
 
-onSegment(sexInput, "sex", (v) => {
-    person.sex = v === "male" ? 1 : 0;
+onSegment(sexInput, "sex", (value) => {
+    person.sex = value === "male" ? 1 : 0;
     savePerson();
     renderPerson();
 });
@@ -3598,11 +3527,13 @@ activityInput.addEventListener("input", () => {
     person.activity = +activityInput.value;
     renderActivityLevel();
 });
+
 // Плавный слайдер: сохраняем при отпускании, как остальные поля
 activityInput.addEventListener("change", () => {
     savePerson();
     renderPerson();
 });
+
 onSegment(goalInput, "goal", (v) => {
     person.weightGoal = v;
     savePerson();
@@ -3611,10 +3542,10 @@ onSegment(goalInput, "goal", (v) => {
 
 maskNumber(heightInput, 250, 0);
 maskNumber(weightInput, 500, 1);
-maskNumber(sleepInput, 24, 1);
-maskNumber(stepsInput, 100000, 0);
-maskNumber(waterInput, 20, 1);
-maskNumber(targetWeightInput, 500, 1);
+maskNumber(targetInputs.sleep, 24, 1);
+maskNumber(targetInputs.steps, 100000, 0);
+maskNumber(targetInputs.water, 20, 1);
+maskNumber(targetInputs.weight, 500, 1);
 maskNumber(goalInputs.kcal, 10000, 0);
 maskNumber(goalInputs.protein, 1000, 1);
 maskNumber(goalInputs.fat, 1000, 1);
@@ -3623,7 +3554,6 @@ maskNumber(goalInputs.fiber, 200, 1);
 maskNumber(goalInputs.sugar, 500, 1);
 maskNumber(goalInputs.salt, 50, 1);
 maskNumber(goalInputs.satFat, 200, 1);
-Object.values(macroInputs).forEach((input) => maskNumber(input, 100, 0));
 
 /* --- Birthdate --- */
 
@@ -3785,20 +3715,20 @@ birthdateInput.addEventListener("paste", (e) => {
     setValue();
 });
 
-const validDate = () => {
+const getBirthdate = () => {
     if (birthdate.digits.length !== 8) return false;
 
     const d = +birthdate.digits.slice(0, 2);
     const m = +birthdate.digits.slice(2, 4);
     const y = +birthdate.digits.slice(4, 8);
-    const value = new Date(y, m - 1, d);
+    const dst = new Date(y, m - 1, d);
 
     return (
-        value.getFullYear() === y &&
-        value.getMonth() === m - 1 &&
-        value.getDate() === d &&
-        value <= new Date()
-    );
+        dst.getFullYear() === y &&
+        dst.getMonth() === m - 1 &&
+        dst.getDate() === d &&
+        dst <= new Date()
+    ) ? dst : null;
 };
 
 /* --- Export, Import, Reset --- */
@@ -3966,7 +3896,7 @@ const averageSummaries = (list) => {
 const aggregateDays = (b) =>
     averageSummaries(
         pastDays(b.start, b.end)
-            .map((d) => getMeals(getDate(d)))
+            .map((d) => getMeals(getDateKey(d)))
             .filter((list) => list.length)
             .map(daySummaryOf),
     );
@@ -3986,7 +3916,7 @@ const aggregateWater = (b) => {
             .reduce((s, e) => s + e.ml, 0);
     }
     const values = pastDays(b.start, b.end)
-        .map((d) => dayWater(getDate(d)))
+        .map((d) => dayWater(getDateKey(d)))
         .filter((v) => v > 0);
     return values.length
         ? values.reduce((a, v) => a + v, 0) / values.length
@@ -4017,12 +3947,12 @@ const getStreaks = () => {
     let best = 0,
         run = 0;
     for (let d = first; d <= today; d = addDays(d, 1)) {
-        run = inNorm(getDate(d)) ? run + 1 : 0;
+        run = inNorm(getDateKey(d)) ? run + 1 : 0;
         best = Math.max(best, run);
     }
     let current = 0;
-    let d = inNorm(getDate(new Date())) ? new Date() : addDays(new Date(), -1);
-    while (inNorm(getDate(d))) {
+    let d = inNorm(getDateKey(new Date())) ? new Date() : addDays(new Date(), -1);
+    while (inNorm(getDateKey(d))) {
         current++;
         d = addDays(d, -1);
     }
@@ -4635,7 +4565,7 @@ const renderStats = () => {
     const sums = buckets.map(aggregate);
     const g = person.goals;
     const days = pastDays(start, end);
-    const logged = days.filter((d) => getMeals(getDate(d)).length);
+    const logged = days.filter((d) => getMeals(getDateKey(d)).length);
     const rangeMeals = meals.filter(
         (m) => m.eaten >= start && m.eaten < end && m.eaten <= Date.now(),
     );
@@ -4658,8 +4588,8 @@ const renderStats = () => {
                     ? null
                     : average(
                         pastDays(addDays(b.start, -6), b.end).map((d) =>
-                            getMeals(getDate(d)).length
-                                ? getSumMeals(getDate(d)).kcal
+                            getMeals(getDateKey(d)).length
+                                ? getSumMeals(getDateKey(d)).kcal
                                 : null,
                         ),
                     ),
@@ -4673,7 +4603,7 @@ const renderStats = () => {
     setChartValue(
         "kcal-chart",
         logged.length
-            ? `${fmt(average(logged.map((d) => getSumMeals(getDate(d)).kcal)))} ${S.kcalUnit}/${S.dayShort}`
+            ? `${fmt(average(logged.map((d) => getSumMeals(getDateKey(d)).kcal)))} ${S.kcalUnit}/${S.dayShort}`
             : "",
     );
 
@@ -4763,7 +4693,7 @@ const renderStats = () => {
     const weekdays = S.wds.map((label, i) => {
         const list = logged
             .filter((d) => weekdayIndex(d) === i)
-            .map((d) => daySummaryOf(getMeals(getDate(d))));
+            .map((d) => daySummaryOf(getMeals(getDateKey(d))));
         return {
             label,
             count: average(list.map((s) => s.count)),
@@ -4802,12 +4732,12 @@ const renderStats = () => {
 
     /* 9. Streak */
     const fromDay = logged.length ? Math.min(...[...mealsIndex.keys()]) : null;
-    const counted = days.filter((d) => fromDay != null && getDate(d) >= fromDay);
+    const counted = days.filter((d) => fromDay != null && getDateKey(d) >= fromDay);
     const streak = getStreaks();
     renderKPI(
         "streak-chart",
         counted.length
-            ? `${fmt((counted.filter((d) => inNorm(getDate(d))).length / counted.length) * 100)}%`
+            ? `${fmt((counted.filter((d) => inNorm(getDateKey(d))).length / counted.length) * 100)}%`
             : null,
         S.daysInNorm,
         S.streakText(streak.current, streak.best),
@@ -4834,13 +4764,15 @@ const renderStats = () => {
 
     /* 11. Weight */
     const weights = buckets.map((b) => {
-        if (period === DAY)
-            return average(
-                logs.weight
-                    .filter((e) => e.date >= b.start && e.date < b.end)
-                    .map((e) => e.weight),
+        if (period === DAY) {
+            const entries = logs.weight.filter(
+                (e) => e.date >= b.start && e.date < b.end,
             );
-        return average(pastDays(b.start, b.end).map((d) => dayWeight(getDate(d))));
+            return entries.length
+                ? average(entries.map((e) => e.weight))
+                : dayWeight(getDateKey(b.start));
+        }
+        return average(pastDays(b.start, b.end).map((d) => dayWeight(getDateKey(d))));
     });
     const weightPoints = weights
         .map((y, x) => ({x, y}))
@@ -4881,8 +4813,8 @@ const renderStats = () => {
         "weight-kcal-scatter",
         days
             .map((d) => {
-                const w = dayWeight(getDate(d));
-                const k = getDate(addDays(d, -lag));
+                const w = dayWeight(getDateKey(d));
+                const k = getDateKey(addDays(d, -lag));
                 if (w == null || !getMeals(k).length) return null;
                 return {x: getSumMeals(k).kcal, y: w, label: getDateText(d)};
             })
@@ -4895,7 +4827,7 @@ const renderStats = () => {
         "trigger-scatter",
         days
             .map((d) => {
-                const key = getDate(d);
+                const key = getDateKey(d);
                 const xv = triggerX === "sleep" ? daySleep(key) : daySteps(key);
                 if (xv == null || !getMeals(key).length) return null;
                 const s = getSumMeals(key);
@@ -4926,7 +4858,7 @@ const renderStats = () => {
     const micro = Object.fromEntries(
         MICRO_KEYS.map((k) => {
             const values = logged
-                .map((d) => getSumMeals(getDate(d)).micro[k])
+                .map((d) => getSumMeals(getDateKey(d)).micro[k])
                 .filter((v) => v != null);
             return [
                 k,
@@ -5035,7 +4967,7 @@ document.querySelectorAll("input:not([type=file])").forEach((input) => {
     document.addEventListener("visibilitychange", () => {
         if (document.hidden) return;
         const now = new Date();
-        if (getDate(now) === getDate(today)) return;
+        if (getDateKey(now) === getDateKey(today)) return;
         today = now;
         calendarPages = {};
         if (page === pages.diary) renderDiary();

@@ -225,7 +225,6 @@ window.TRANSLATIONS = {
     links: "Связи",
     rhythm: "Ритм",
     micro: "Микронутриенты",
-    manualTargetsHint: "Оставьте поле пустым, чтобы норма считалась автоматически",
     balance: "Баланс к норме",
     mealType: "Калории по приемам пищи",
     tagsKcal: "Калории по тегам",
