@@ -294,13 +294,16 @@ body:not(.photos) .needs-photos {
 .gap-20 {
   gap: 20px;
 }
-
+.gap-30 {
+  gap: 30px;
+}
 .pad-10 {
   padding: 10px;
 }
 .pad-20 {
   padding: 20px;
 }
+
 
 .safe {
   padding-bottom: calc(78px + env(safe-area-inset-bottom));
@@ -1346,7 +1349,6 @@ nav > div > button {
 #profile {
   display: flex;
   flex-direction: column;
-  gap: 18px;
   width: 100%;
 }
 
@@ -1838,7 +1840,6 @@ h2.group {
   text-align: left;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--line);
   border-radius: 0;
   font-size: 16px;
   color: var(--text);

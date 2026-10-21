@@ -369,9 +369,8 @@
      ========================================================================== -->
 
 <section id="person-page" class="width-500 safe hidden">
-    <br/>
 
-    <form id="profile" class="pad-20 col gap-15" novalidate autocomplete="off" onsubmit="return false">
+    <form id="profile" class="pad-20 col gap-30" novalidate autocomplete="off" onsubmit="return false">
         <div class="row gap-15">
             <div class="field grow">
                 <label class="label" for="birthdate" data-i18n="birthdate"></label>
@@ -414,15 +413,6 @@
             <input type="range" id="activity" min="1" max="2" step="0.025" value="1.375">
         </div>
 
-        <div class="field">
-            <label class="label" data-i18n="goal"></label>
-            <div class="segment" id="goal" style="--n:3;--i:1">
-                <button type="button" data-goal="lose" data-i18n="lose"></button>
-                <button type="button" data-goal="maintain" class="active" data-i18n="maintain"></button>
-                <button type="button" data-goal="gain" data-i18n="gain"></button>
-            </div>
-        </div>
-
         <div class="row gap-15">
             <div class="field grow">
                 <label class="label" for="target-sleep" data-i18n="sleep"></label>
@@ -456,6 +446,8 @@
             </div>
         </div>
 
+        <button type="button" id="calc-goals" class="tap wide" data-i18n="calculateGoals"></button>
+
         <div class="grid-4">
             <label class="field"><span class="label" data-i18n="kcal"></span><input id="goal-kcal" class="input mono"
                                                                                     inputmode="numeric"></label>
@@ -482,10 +474,6 @@
 </section>
 
 <section id="settings-page" class="width-500 safe hidden">
-    <br/>
-    <div class="pad-20">
-        <h3 data-i18n="settings">Настройки</h3>
-    </div>
 
     <a href="https://pay.cloudtips.ru/p/9e3a23d6" target="_blank" rel="noopener">
         <svg class="icon">

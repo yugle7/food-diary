@@ -337,32 +337,14 @@ const getAge = (birthdate) => {
     return Math.min(120, Math.max(0, age));
 };
 
-const computeGoals = ({
-                          sex,
-                          age,
-                          height,
-                          weight,
-                          activity,
-                          weightGoal,
-                          macroRatio,
-                      }) => {
-    const bmr = 10 * weight + 6.25 * height - 5 * age + (sex ? 5 : -161);
-    const tdee = bmr * activity;
+const computeGoals = ({sex, age, height, weight, activity}) => {
     const kcal = Math.max(
         1200,
-        tdee * (weightGoal === LOSE ? 0.85 : weightGoal === GAIN ? 1.1 : 1),
+        (10 * weight + 6.25 * height - 5 * age + (sex ? 5 : -161)) * activity,
     );
-    let protein, fat, carbs;
-    if (macroRatio) {
-        // Custom ratio: each macro as % of calories
-        protein = (kcal * macroRatio.protein) / 100 / 4;
-        fat = (kcal * macroRatio.fat) / 100 / 9;
-        carbs = Math.max(0, (kcal * macroRatio.carbs) / 100 / 4);
-    } else {
-        protein = weight * (weightGoal === LOSE ? 2.0 : 1.6);
-        fat = (kcal * 0.3) / 9;
-        carbs = Math.max(0, (kcal - protein * 4 - fat * 9) / 4);
-    }
+    const protein = weight * 1.6;
+    const fat = (kcal * 0.3) / 9;
+    const carbs = Math.max(0, (kcal - protein * 4 - fat * 9) / 4);
     return {
         kcal,
         protein,
@@ -942,19 +924,13 @@ const heightInput = $("height");
 const weightInput = $("weight");
 const activityInput = $("activity");
 const activityLevel = $("activity-level");
-const goalInput = $("goal");
+const calcGoalsButton = $("calc-goals");
 
 const targetInputs = {
     sleep: $("target-sleep"),
     steps: $("target-steps"),
     water: $("target-water"),
     weight: $("target-weight")
-};
-
-const macroInputs = {
-    protein: $("macro-protein"),
-    fat: $("macro-fat"),
-    carbs: $("macro-carbs"),
 };
 
 const TARGET_KEYS = ['sleep', 'steps', 'water', 'weight'];
@@ -1095,7 +1071,6 @@ const personToStore = () => {
         weight,
         activity,
         weightGoal,
-        macroRatio,
         targets,
         goals,
     } = person;
@@ -1106,7 +1081,6 @@ const personToStore = () => {
         weight,
         activity,
         weightGoal,
-        macroRatio,
         targets,
         goals,
     };
@@ -3448,7 +3422,6 @@ const fillPersonForm = () => {
     setSegment(sexInput, person.sex ? "male" : "female", "sex");
     activityInput.value = person.activity;
     renderActivityLevel();
-    setSegment(goalInput, person.weightGoal, "goal");
 
     heightInput.value = fmt(person.height, 0);
     weightInput.value = fmt(person.weight, 1);
@@ -3534,11 +3507,6 @@ activityInput.addEventListener("change", () => {
     renderPerson();
 });
 
-onSegment(goalInput, "goal", (v) => {
-    person.weightGoal = v;
-    savePerson();
-    renderPerson();
-});
 
 maskNumber(heightInput, 250, 0);
 maskNumber(weightInput, 500, 1);
